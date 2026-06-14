@@ -55,18 +55,23 @@ export default function HesaplamaFormu() {
   const [tedaviTuru, setTedaviTuru] = useState<TedaviTuru>("ayakta");
 
   // Rapor tarihi GİRİŞ MODları: "tarih" | "gun"
-  const [tarihMod, setTarihMod] = useState<"tarih" | "gun">("tarih");
+  // Varsayılan: gün sayısı modu (başlangıç gerekmez, güncel asgari ücret kullanılır)
+  const [tarihMod, setTarihMod] = useState<"tarih" | "gun">("gun");
   const [raporBaslangic, setRaporBaslangic] = useState(bugun);
   const [raporBitis, setRaporBitis] = useState(bugun);
   const [raporGunSayisi, setRaporGunSayisi] = useState(1);
 
-  // Tarih modunda bitiş güncellenir; gün modunda başlangıç + gün → bitiş
+  // Gün modunda bitiş = bugün - gün + 1 gün geriye → aslında bugünden itibaren hesap
+  // Başlangıç tarihi gösterilmez; sadece gün girilir. Hesaplama için bugün esas alınır.
   useEffect(() => {
-    if (tarihMod === "gun" && raporBaslangic) {
-      const b = addDays(raporBaslangic, raporGunSayisi - 1);
+    if (tarihMod === "gun") {
+      // Gün modunda başlangıç = bugün, bitiş = bugün + (gun-1)
+      setRaporBaslangic(bugun);
+      const b = addDays(bugun, raporGunSayisi - 1);
       setRaporBitis(b);
     }
-  }, [tarihMod, raporBaslangic, raporGunSayisi]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tarihMod, raporGunSayisi]);
 
   // Karma tedavi dönemleri
   const [karmaDonemleri, setKarmaDonemleri] = useState<KarmaDonem[]>([
@@ -95,26 +100,24 @@ export default function HesaplamaFormu() {
   const [hata, setHata] = useState<string | null>(null);
   const [detayAcik, setDetayAcik] = useState(false);
 
-  /* Tarih değişimi */
+  /* Tarih değişimi (sadece tarih modunda kullanılır) */
   const handleBaslangicChange = (val: string) => {
     setRaporBaslangic(val);
     setSonuc(null);
-    if (tarihMod === "gun") {
-      setRaporBitis(addDays(val, raporGunSayisi - 1));
-    }
     const yeniAylar = getOnceki12Ay(val);
-    setAyKazanclar((prev) =>
-      yeniAylar.map((ay) => prev.find((p) => p.ay === ay) ?? { ay, kazanc: 0, primGunu: 30 })
-    );
     if (kazancMod === "asgari") {
       setAyKazanclar(yeniAylar.map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 })));
+    } else {
+      setAyKazanclar((prev) =>
+        yeniAylar.map((ay) => prev.find((p) => p.ay === ay) ?? { ay, kazanc: 0, primGunu: 30 })
+      );
     }
   };
 
+  // Gün modunda sadece gün sayısı değişir; başlangıç = bugün sabit
   const handleGunChange = (val: number) => {
     const g = Math.max(1, val);
     setRaporGunSayisi(g);
-    setRaporBitis(addDays(raporBaslangic, g - 1));
     setSonuc(null);
   };
 
@@ -126,13 +129,15 @@ export default function HesaplamaFormu() {
     setSonuc(null);
   };
 
-  /* Asgari ücretle doldur */
+  /* Asgari ücretle doldur — gün modunda bugün esas, tarih modunda başlangıç esas */
   const doldurAsgariUcret = useCallback(() => {
-    const aylar = getOnceki12Ay(raporBaslangic);
+    const bazTarih = tarihMod === "gun" ? bugun : raporBaslangic;
+    const aylar = getOnceki12Ay(bazTarih);
     setAyKazanclar(aylar.map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 })));
     setKazancMod("asgari");
     setSonuc(null);
-  }, [raporBaslangic]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [raporBaslangic, tarihMod]);
 
   const manueleMod = () => {
     setKazancMod("manuel");
@@ -167,8 +172,15 @@ export default function HesaplamaFormu() {
   /* Hesapla */
   const handleHesapla = () => {
     setHata(null); setSonuc(null);
-    if (!raporBaslangic || !raporBitis) { setHata("Rapor tarihlerini giriniz."); return; }
-    if (new Date(raporBitis) < new Date(raporBaslangic)) { setHata("Bitiş tarihi başlangıçtan önce olamaz."); return; }
+    if (tarihMod === "tarih" && (!raporBaslangic || !raporBitis)) {
+      setHata("Rapor tarihlerini giriniz."); return;
+    }
+    if (tarihMod === "gun" && raporGunSayisi < 1) {
+      setHata("Rapor gün sayısı en az 1 olmalıdır."); return;
+    }
+    if (tarihMod === "tarih" && new Date(raporBitis) < new Date(raporBaslangic)) {
+      setHata("Bitiş tarihi başlangıçtan önce olamaz."); return;
+    }
     const bazGun = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
     if (bazGun === 0) { setHata("12 ay toplam prim günü sıfır olamaz."); return; }
     try {
@@ -321,47 +333,75 @@ export default function HesaplamaFormu() {
         )}
       </Kart>
 
-      {/* ── 3. Rapor Tarihleri ── */}
+      {/* ── 3. Rapor Süresi ── */}
       <Kart>
-        <Baslik no="3" metin="Rapor Tarihleri" />
+        <Baslik no="3" metin="Rapor Süresi" />
 
-        {/* Mod seçimi */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <SeçBtn aktif={tarihMod === "tarih"} renk="#475569" onClick={() => setTarihMod("tarih")} kucuk>
-            📅 Tarih Gir
-          </SeçBtn>
-          <SeçBtn aktif={tarihMod === "gun"} renk="#475569" onClick={() => setTarihMod("gun")} kucuk>
+        {/* Yan yana mod: Gün solda, Tarih sağda */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "1fr 1fr",
+          border: "1.5px solid #d1dce8", borderRadius: 8,
+          overflow: "hidden", marginBottom: 16,
+        }}>
+          <button
+            onClick={() => { setTarihMod("gun"); setSonuc(null); }}
+            style={{
+              padding: "11px 6px", border: "none", cursor: "pointer",
+              fontSize: 13, fontWeight: tarihMod === "gun" ? 700 : 500,
+              background: tarihMod === "gun" ? "#1a4b8c" : "#f8fafc",
+              color: tarihMod === "gun" ? "#fff" : "#64748b",
+              borderRight: "1px solid #d1dce8",
+            }}>
             🔢 Gün Sayısı Gir
-          </SeçBtn>
+          </button>
+          <button
+            onClick={() => { setTarihMod("tarih"); setSonuc(null); }}
+            style={{
+              padding: "11px 6px", border: "none", cursor: "pointer",
+              fontSize: 13, fontWeight: tarihMod === "tarih" ? 700 : 500,
+              background: tarihMod === "tarih" ? "#1a4b8c" : "#f8fafc",
+              color: tarihMod === "tarih" ? "#fff" : "#64748b",
+            }}>
+            📅 Tarih Gir
+          </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {tarihMod === "gun" ? (
+          /* GÜN MODU — sadece gün sayısı, başlangıç istenmiyor */
           <div>
-            <label style={lb}>Başlangıç Tarihi</label>
-            <input type="date" value={raporBaslangic}
-              onChange={(e) => handleBaslangicChange(e.target.value)} style={inp} />
+            <label style={lb}>Rapor Gün Sayısı</label>
+            <input
+              type="number" min={1} value={raporGunSayisi}
+              onChange={(e) => handleGunChange(parseInt(e.target.value) || 1)}
+              style={{ ...inp, maxWidth: 180, fontSize: 22, fontWeight: 800, textAlign: "center", letterSpacing: 1 }}
+              placeholder="örn: 10"
+            />
+            <p style={{ margin: "8px 0 0", fontSize: 12, color: "#64748b" }}>
+              Güncel asgari ücrete (2026) göre hesaplanacaktır.
+            </p>
           </div>
-          {tarihMod === "tarih" ? (
+        ) : (
+          /* TARİH MODU */
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={lb}>Başlangıç Tarihi</label>
+              <input type="date" value={raporBaslangic}
+                onChange={(e) => handleBaslangicChange(e.target.value)} style={inp} />
+            </div>
             <div>
               <label style={lb}>Bitiş Tarihi</label>
               <input type="date" value={raporBitis} min={raporBaslangic}
                 onChange={(e) => handleBitisChange(e.target.value)} style={inp} />
             </div>
-          ) : (
-            <div>
-              <label style={lb}>Rapor Gün Sayısı</label>
-              <input type="number" min={1} value={raporGunSayisi}
-                onChange={(e) => handleGunChange(parseInt(e.target.value) || 1)} style={inp} />
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {toplamRaporGun > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
             <Chip renk="#1a4b8c" etiket="Rapor Günü" deger={`${toplamRaporGun} gün`} />
-            <Chip renk="#475569" etiket="Bitiş" deger={raporBitis} />
+            {tarihMod === "tarih" && <Chip renk="#475569" etiket="Bitiş Tarihi" deger={raporBitis} />}
             <Chip renk={onikiAyGun >= 90 ? "#1a7a4a" : "#c0392b"} etiket="12 Ay Prim" deger={`${onikiAyGun} gün`} />
-            <Chip renk={canliOrt >= bitisAsgari ? "#1a7a4a" : "#d97706"} etiket="Günlük Ort." deger={`${fmt(canliOrt)} ₺`} />
+            {canliOrt > 0 && <Chip renk={canliOrt >= bitisAsgari ? "#1a7a4a" : "#d97706"} etiket="Günlük Ort." deger={`${fmt(canliOrt)} ₺`} />}
           </div>
         )}
 
@@ -397,7 +437,7 @@ export default function HesaplamaFormu() {
             borderRadius: 8, padding: "12px 14px",
           }}>
             <div style={{ fontWeight: 700, color: "#1a7a4a", marginBottom: 8, fontSize: 13 }}>
-              ✓ Her ay asgari ücret üzerinden dolduruldu (prim gün: 30)
+              ✓ Güncel asgari ücrete göre dolduruldu (prim gün: 30)
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {ayKazanclar.map((a) => (
@@ -567,6 +607,14 @@ export default function HesaplamaFormu() {
             {sonuc.ayaktaToplamOdenek > 0 && sonuc.yatarakToplamOdenek > 0 && (
               <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
                 Ayakta: {fmt(sonuc.ayaktaToplamOdenek)} ₺ · Yatarak: {fmt(sonuc.yatarakToplamOdenek)} ₺
+              </div>
+            )}
+            {kazancMod === "asgari" && (
+              <div style={{
+                marginTop: 10, background: "rgba(255,255,255,0.15)", borderRadius: 6,
+                padding: "6px 10px", fontSize: 11,
+              }}>
+                ℹ️ Güncel asgari ücrete göre hesaplanmıştır
               </div>
             )}
           </div>
