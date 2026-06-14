@@ -1,23 +1,67 @@
 @import "tailwindcss";
 
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
-  --sgk-blue: #1a4b8c;
-  --sgk-blue-dark: #0f3060;
-  --sgk-blue-light: #2563b8;
-  --sgk-red: #c0392b;
-  --sgk-green: #1a7a4a;
-  --sgk-gray: #f5f7fa;
-  --sgk-border: #d1dce8;
-  --sgk-text: #1e293b;
-  --sgk-muted: #64748b;
+  --blue:       #1a4b8c;
+  --blue-dark:  #0f3060;
+  --blue-light: #2563b8;
+  --green:      #1a7a4a;
+  --red:        #c0392b;
+  --gray-bg:    #f0f4f9;
+  --border:     #d1dce8;
+  --text:       #1e293b;
+  --muted:      #64748b;
+  --card-bg:    #ffffff;
+  --shadow:     0 2px 10px rgba(0,0,0,0.07);
 }
 
-* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: var(--sgk-gray);
-  color: var(--sgk-text);
-  margin: 0;
+  background: var(--gray-bg);
+  color: var(--text);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+
+/* ── PC: iki sütun düzeni ───────────────────────────────── */
+@media (min-width: 900px) {
+  .pc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .pc-span-full { grid-column: 1 / -1; }
+  .pc-left  { grid-column: 1; }
+  .pc-right { grid-column: 2; }
+
+  /* PC'de kartlar biraz daha geniş padding */
+  .kart { padding: 20px 22px !important; }
+
+  /* PC'de başlık daha büyük */
+  .header-title { font-size: 20px !important; }
+  .header-sub   { font-size: 12px !important; }
+
+  /* PC'de sonuç kartları 4'lü */
+  .sonuc-grid { grid-template-columns: repeat(4, 1fr) !important; }
+
+  /* PC'de toplam ödenek daha büyük */
+  .toplam-rakam { font-size: 40px !important; }
+}
+
+/* ── Mobil ince ayarlar ─────────────────────────────────── */
+@media (max-width: 480px) {
+  .header-title { font-size: 15px !important; }
+  .mod-toggle button { font-size: 12px !important; padding: 9px 4px !important; }
+}
+
+/* ── PWA standalone mod ─────────────────────────────────── */
+@media (display-mode: standalone) {
+  body { padding-top: env(safe-area-inset-top); }
 }
