@@ -459,7 +459,6 @@ export default function HesaplamaFormu() {
             {!sonuc && (
               <Kart>
                 <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--muted)" }}>
-                  <div style={{ fontSize: 48, marginBottom: 12 }}>⚕️</div>
                   <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Hesaplama Sonucu</div>
                   <div style={{ fontSize: 12 }}>Formu doldurup Hesapla butonuna basın.</div>
                 </div>
