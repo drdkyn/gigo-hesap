@@ -3,7 +3,7 @@
   "short_name": "SGK Rapor",
   "description": "SGK Geçici İş Göremezlik Ödeneği Hesaplama Aracı",
   "start_url": "/",
-  "display": "standalone",
+  "display": "browser",
   "background_color": "#f5f7fa",
   "theme_color": "#1a4b8c",
   "orientation": "any",
