@@ -35,7 +35,7 @@ const RAPORT_LABELS: Record<RaporTuru, string> = {
 const TEDAVI_LABELS: Record<TedaviTuru, { k: string; oran: string }> = {
   ayakta: { k: "Ayakta", oran: "2/3" },
   yatarak: { k: "Yatarak", oran: "1/2" },
-  karma: { k: "Karma", oran: "Miks" },
+  karma: { k: "Karma", oran: "Ayakta ve Yatarak" },
 };
 
 /* ── Ana bileşen ─────────────────────────────────────── */
@@ -293,7 +293,7 @@ export default function HesaplamaFormu() {
               {tarihMod === "gun" ? (
                 <div>
                   <label style={lb}>Rapor Gün Sayısı</label>
-                  <input type="number" min={1} value={raporGunSayisi}
+                  <input type="number" min={1} value={raporGunSayisi || ""}
                     onChange={(e) => handleGunChange(parseInt(e.target.value) || 1)}
                     style={{ ...inp, maxWidth: 180, fontSize: 22, fontWeight: 800, textAlign: "center" }}
                     placeholder="örn: 10" />
@@ -526,9 +526,6 @@ export default function HesaplamaFormu() {
 
         </div>{/* / pc-grid */}
 
-        <footer style={{ textAlign: "center", fontSize: 11, color: "#94a3b8", marginTop: 24, paddingBottom: 8 }}>
-          © 2026 drdnctgl
-        </footer>
       </div>
     </div>
   );
