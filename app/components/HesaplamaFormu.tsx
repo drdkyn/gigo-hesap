@@ -297,7 +297,7 @@ export default function HesaplamaFormu() {
                     onChange={(e) => handleGunChange(parseInt(e.target.value) || 1)}
                     style={{ ...inp, maxWidth: 180, fontSize: 22, fontWeight: 800, textAlign: "center" }}
                     placeholder="örn: 10" />
-                  <div style={{ marginTop: 10, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#1e40af", lineHeight: 1.6 }}>
+                  <div style={{ marginTop: 10, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "14px 16px", fontSize: 14, color: "#1e40af", lineHeight: 1.7 }}>
                     ℹ️ <b>Güncel asgari ücrete (2026) göre hesaplanacaktır.</b><br />
                     Detaylı hesap için <b>Tarih Gir</b> seçin.
                   </div>
