@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  --sgk-blue: #1a4b8c;
+  --sgk-blue-dark: #0f3060;
+  --sgk-blue-light: #2563b8;
+  --sgk-red: #c0392b;
+  --sgk-green: #1a7a4a;
+  --sgk-gray: #f5f7fa;
+  --sgk-border: #d1dce8;
+  --sgk-text: #1e293b;
+  --sgk-muted: #64748b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--sgk-gray);
+  color: var(--sgk-text);
+  margin: 0;
+  min-height: 100vh;
+}
