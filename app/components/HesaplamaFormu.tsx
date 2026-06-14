@@ -98,7 +98,6 @@ export default function HesaplamaFormu() {
 
   const [sonuc, setSonuc] = useState<HesaplaResult | null>(null);
   const [hata, setHata] = useState<string | null>(null);
-  const [detayAcik, setDetayAcik] = useState(false);
 
   /* Tarih değişimi (sadece tarih modunda kullanılır) */
   const handleBaslangicChange = (val: string) => {
@@ -203,7 +202,6 @@ export default function HesaplamaFormu() {
         asgariDolu: tarihMod === "gun" || kazancMod === "asgari",
       });
       setSonuc(r);
-      setDetayAcik(false);
       setTimeout(() => document.getElementById("sonuc-alan")?.scrollIntoView({ behavior: "smooth" }), 100);
     } catch (e) {
       setHata("Hesaplama hatası: " + (e as Error).message);
@@ -632,63 +630,6 @@ export default function HesaplamaFormu() {
             )}
           </div>
 
-          {/* Detay tablosu */}
-          <Kart>
-            <button onClick={() => setDetayAcik(!detayAcik)} style={{
-              width: "100%", background: "none", border: "none", cursor: "pointer",
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: 0, fontSize: 14, fontWeight: 700, color: "#1a4b8c",
-            }}>
-              <span>📊 Hesaplama Detayı</span>
-              <span style={{ fontSize: 18 }}>{detayAcik ? "▲" : "▼"}</span>
-            </button>
-            {detayAcik && (
-              <div style={{ marginTop: 14 }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <tbody>
-                    <DR l="Toplam rapor günü" d={`${sonuc.toplamRaporGun} gün`} />
-                    {sonuc.analikHaftaAsimi && <DR l="Analık maks 24 hafta (168 gün) uygulandı" d={`${sonuc.analikMaxGun} gün`} v="uyari" />}
-                    {sonuc.beklemeSuresi > 0 && <DR l={`İlk ${sonuc.beklemeSuresi} gün bekleme`} d="ödenmez" v="uyari" />}
-                    <DR l="Ödenecek gün" d={`${sonuc.odenenGun} gün`} />
-                    {sonuc.ayaktaOdenenGun > 0 && <DR l="  ↳ Ayakta ödenecek" d={`${sonuc.ayaktaOdenenGun} gün`} />}
-                    {sonuc.yatarakOdenenGun > 0 && <DR l="  ↳ Yatarak ödenecek" d={`${sonuc.yatarakOdenenGun} gün`} />}
-                    <DR l="12 ay toplam prim günü" d={`${sonuc.toplamOnikiAyPrimGun} gün`}
-                      v={sonuc.doksan_gun_sartiSaglandi ? "basari" : "hata"} />
-                    <DR l="Baz dönem toplam kazanç" d={`${fmt(sonuc.bazDonemleriKazanc)} ₺`} />
-                    <DR l="Baz dönem toplam prim günü" d={`${sonuc.bazDonemleriGun} gün`} />
-                    <DR l="Günlük brüt ortalama" d={`${fmt(sonuc.gunlukOrtalamaBrut)} ₺`} />
-                    {sonuc.yuzElliTavanUygulandimi && <DR l="%150 tavan (normal maaş ort. × 1.5)" d={`${fmt(sonuc.yuzElliTavan)} ₺`} v="uyari" />}
-                    {sonuc.ikiKatTavanUygulandimi && <DR l="180 gün altı tavan (asgari × 2)" d={`${fmt(sonuc.ikiKatAsgariTavan)} ₺`} v="uyari" />}
-                    <DR l="Rapor başlangıç günlük asgari ücret" d={`${fmt(sonuc.raporBaslangicAsgariGunluk)} ₺`} />
-                    <DR l="Esas günlük kazanç"
-                      d={`${fmt(sonuc.gunlukKazancEsas)} ₺`}
-                      v={sonuc.asgariUcretUygulandimi ? "uyari" : "basari"}
-                      not={sonuc.asgariUcretUygulandimi ? "Asgari ücret uygulandı" : "Hesaplanan"} />
-                    <DR l="Ayakta günlük ödenek (×2/3)" d={`${fmt(sonuc.ayaktaGunluk)} ₺`} />
-                    <DR l="Yatarak günlük ödenek (×1/2)" d={`${fmt(sonuc.yatarakGunluk)} ₺`} />
-                    {sonuc.ayaktaToplamOdenek > 0 && <DR l="Ayakta toplam" d={`${fmt(sonuc.ayaktaToplamOdenek)} ₺`} />}
-                    {sonuc.yatarakToplamOdenek > 0 && <DR l="Yatarak toplam" d={`${fmt(sonuc.yatarakToplamOdenek)} ₺`} />}
-                    <DR l="TOPLAM ÖDENEK" d={`${fmt(sonuc.toplamOdenek)} ₺`} v="toplam" />
-                  </tbody>
-                </table>
-                <details style={{ marginTop: 14 }}>
-                  <summary style={{ fontSize: 12, color: "#64748b", cursor: "pointer", fontWeight: 600 }}>
-                    Adım adım hesaplama
-                  </summary>
-                  <ol style={{ margin: "8px 0 0", padding: "0 0 0 18px" }}>
-                    {sonuc.adimlar.map((a, i) => (
-                      <li key={i} style={{
-                        fontSize: 12, lineHeight: 1.6, marginBottom: 3,
-                        color: a.includes("TOPLAM") ? "#c0392b" : "#374151",
-                        fontWeight: a.includes("TOPLAM") ? 700 : 400,
-                      }}>{a}</li>
-                    ))}
-                  </ol>
-                </details>
-              </div>
-            )}
-          </Kart>
-
           <div style={{
             background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8,
             padding: "10px 14px", fontSize: 11, color: "#92400e",
@@ -757,19 +698,6 @@ function SonKart({ icon, etiket, deger, renk, alt }: { icon: string; etiket: str
     </div>
   );
 }
-function DR({ l, d, v, not }: { l: string; d: string; v?: "uyari"|"basari"|"toplam"|"hata"; not?: string }) {
-  const bg = v==="toplam"?"#fef2f2":v==="uyari"?"#fffbeb":v==="basari"?"#f0fdf4":v==="hata"?"#fef2f2":"transparent";
-  const c = v==="toplam"?"#c0392b":v==="uyari"?"#d97706":v==="basari"?"#1a7a4a":v==="hata"?"#b91c1c":"#374151";
-  return (
-    <tr style={{ background: bg }}>
-      <td style={{ padding: "5px 8px", borderBottom: "1px solid #f1f5f9", color: "#64748b", fontSize: 12 }}>
-        {l}{not && <span style={{ marginLeft: 6, fontSize: 11, color: c, fontWeight: 600 }}>[{not}]</span>}
-      </td>
-      <td style={{ padding: "5px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: v?700:500, color: c, fontSize: 12 }}>{d}</td>
-    </tr>
-  );
-}
-
 /* ── Stiller ──────────────────────────────────────────── */
 const inp: React.CSSProperties = { width: "100%", border: "1.5px solid #d1dce8", borderRadius: 7, padding: "9px 10px", fontSize: 14, color: "#1e293b", background: "#fff", outline: "none", boxSizing: "border-box" };
 const tabloInp: React.CSSProperties = { width: "100%", border: "1.5px solid #d1dce8", borderRadius: 6, padding: "7px 8px", fontSize: 13, color: "#1e293b", background: "#fff", outline: "none", boxSizing: "border-box" };
