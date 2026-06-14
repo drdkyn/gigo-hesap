@@ -47,12 +47,16 @@ export default function HesaplamaFormu() {
   const [tarihMod, setTarihMod] = useState<"tarih" | "gun">("gun");
   const [raporBaslangic, setRaporBaslangic] = useState(bugun);
   const [raporBitis, setRaporBitis] = useState(bugun);
-  const [raporGunSayisi, setRaporGunSayisi] = useState(1);
+  const [raporGunSayisi, setRaporGunSayisi] = useState<number | null>(null);
 
   useEffect(() => {
     if (tarihMod === "gun") {
       setRaporBaslangic(bugun);
-      setRaporBitis(addDays(bugun, raporGunSayisi - 1));
+      if (raporGunSayisi !== null) {
+        setRaporBitis(addDays(bugun, raporGunSayisi - 1));
+      } else {
+        setRaporBitis(bugun);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tarihMod, raporGunSayisi]);
@@ -86,7 +90,7 @@ export default function HesaplamaFormu() {
     else
       setAyKazanclar((prev) => yeniAylar.map((ay) => prev.find((p) => p.ay === ay) ?? { ay, kazanc: 0, primGunu: 30 }));
   };
-  const handleGunChange = (val: number) => { setRaporGunSayisi(Math.max(1, val)); setSonuc(null); };
+  const handleGunChange = (val: number | null) => { setRaporGunSayisi(val); setSonuc(null); };
   const handleBitisChange = (val: string) => {
     setRaporBitis(val);
     if (raporBaslangic && val) setRaporGunSayisi(gunFarki(raporBaslangic, val));
@@ -113,7 +117,7 @@ export default function HesaplamaFormu() {
   const handleHesapla = () => {
     setHata(null); setSonuc(null);
     if (tarihMod === "tarih" && (!raporBaslangic || !raporBitis)) { setHata("Rapor tarihlerini giriniz."); return; }
-    if (tarihMod === "gun" && raporGunSayisi < 1) { setHata("Gün sayısı en az 1 olmalıdır."); return; }
+    if (tarihMod === "gun" && !raporGunSayisi) { setHata("Gün sayısı giriniz."); return; }
     if (tarihMod === "tarih" && new Date(raporBitis) < new Date(raporBaslangic)) { setHata("Bitiş tarihi başlangıçtan önce olamaz."); return; }
     const kullanilacakAylar: AyKazanc[] = tarihMod === "gun"
       ? getOnceki12Ay(bugun).map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 }))
@@ -140,11 +144,13 @@ export default function HesaplamaFormu() {
     setSonuc(null); setHata(null); setKazancMod("manuel");
     setAyKazanclar(ayListesi.map((ay) => ({ ay, kazanc: 0, primGunu: 30 })));
     setEmsalKazanc(0); setEmsalPrimGunu(1); setNormalMaaslar(Array(12).fill(0));
-    setRaporGunSayisi(1); setRaporBitis(raporBaslangic);
+    setRaporGunSayisi(null); setRaporBitis(raporBaslangic);
   };
 
   /* Anlık özetler */
-  const toplamRaporGun = raporBaslangic && raporBitis ? gunFarki(raporBaslangic, raporBitis) : 0;
+  const toplamRaporGun = tarihMod === "gun"
+    ? (raporGunSayisi ?? 0)
+    : (raporBaslangic && raporBitis ? gunFarki(raporBaslangic, raporBitis) : 0);
   const onikiAyGun = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
   const bazKazanc = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.kazanc, 0);
   const bazGun = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
@@ -163,13 +169,15 @@ export default function HesaplamaFormu() {
         boxShadow: "0 4px 20px rgba(26,75,140,0.35)",
       }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "18px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-          {/* İkon */}
+          {/* İkon - beyaz kart üzerinde renkli */}
           <div style={{
             width: 52, height: 52, flexShrink: 0,
-            background: "rgba(255,255,255,0.15)", borderRadius: 14,
+            background: "#ffffff",
+            borderRadius: 14,
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 28, backdropFilter: "blur(4px)",
-          }}>⚕️</div>
+            fontSize: 30,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+          }}>🩺</div>
           <div style={{ flex: 1 }}>
             <h1 className="header-title" style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: "-0.3px" }}>
               SGK Geçici İş Göremezlik Ödeneği Hesaplama
@@ -293,10 +301,15 @@ export default function HesaplamaFormu() {
               {tarihMod === "gun" ? (
                 <div>
                   <label style={lb}>Rapor Gün Sayısı</label>
-                  <input type="number" min={1} value={raporGunSayisi || ""}
-                    onChange={(e) => handleGunChange(parseInt(e.target.value) || 1)}
+                  <input
+                    type="number" min={1}
+                    value={raporGunSayisi ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      handleGunChange(v === "" ? null : Math.max(1, parseInt(v) || 1));
+                    }}
                     style={{ ...inp, maxWidth: 180, fontSize: 22, fontWeight: 800, textAlign: "center" }}
-                    placeholder="örn: 10" />
+                    placeholder="Gün giriniz" />
                   <div style={{ marginTop: 10, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "14px 16px", fontSize: 14, color: "#1e40af", lineHeight: 1.7 }}>
                     ℹ️ <b>Güncel asgari ücrete (2026) göre hesaplanacaktır.</b><br />
                     Detaylı hesap için <b>Tarih Gir</b> seçin.
