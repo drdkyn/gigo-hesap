@@ -181,17 +181,26 @@ export default function HesaplamaFormu() {
     if (tarihMod === "tarih" && new Date(raporBitis) < new Date(raporBaslangic)) {
       setHata("Bitiş tarihi başlangıçtan önce olamaz."); return;
     }
-    const bazGun = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
-    if (bazGun === 0) { setHata("12 ay toplam prim günü sıfır olamaz."); return; }
+
+    // Gün modunda: asgari ücretle otomatik doldur, prim günü validasyonu yok
+    const kullanilacakAylar: AyKazanc[] = tarihMod === "gun"
+      ? getOnceki12Ay(bugun).map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 }))
+      : ayKazanclar;
+
+    if (tarihMod === "tarih") {
+      const bazGun = kullanilacakAylar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
+      if (bazGun === 0) { setHata("12 ay toplam prim günü sıfır olamaz."); return; }
+    }
+
     try {
       const r = hesapla({
         raporTuru, tedaviTuru, raporBaslangic, raporBitis,
         karmaDonemleri: tedaviTuru === "karma" ? karmaDonemleri : undefined,
-        ayKazanclar,
+        ayKazanclar: kullanilacakAylar,
         emsalKazanc: emsalAktif ? emsalKazanc : undefined,
         emsalPrimGunu: emsalAktif ? emsalPrimGunu : undefined,
         normalMaasKazanc: normalMaasAktif ? normalMaaslar : undefined,
-        asgariDolu: kazancMod === "asgari",
+        asgariDolu: tarihMod === "gun" || kazancMod === "asgari",
       });
       setSonuc(r);
       setDetayAcik(false);
@@ -376,9 +385,13 @@ export default function HesaplamaFormu() {
               style={{ ...inp, maxWidth: 180, fontSize: 22, fontWeight: 800, textAlign: "center", letterSpacing: 1 }}
               placeholder="örn: 10"
             />
-            <p style={{ margin: "8px 0 0", fontSize: 12, color: "#64748b" }}>
-              Güncel asgari ücrete (2026) göre hesaplanacaktır.
-            </p>
+            <div style={{
+              marginTop: 10, background: "#eff6ff", border: "1px solid #bfdbfe",
+              borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#1e40af", lineHeight: 1.6,
+            }}>
+              ℹ️ <b>Güncel asgari ücrete (2026) göre hesaplanacaktır.</b><br />
+              Detaylı hesap için <b>Tarih Gir</b> kısmını seçin.
+            </div>
           </div>
         ) : (
           /* TARİH MODU */
@@ -412,8 +425,8 @@ export default function HesaplamaFormu() {
         )}
       </Kart>
 
-      {/* ── 4. Kazanç Tablosu ── */}
-      <Kart>
+      {/* ── 4. Kazanç Tablosu — sadece tarih modunda göster ── */}
+      {tarihMod === "tarih" && <Kart>
         <Baslik no="4" metin="Son 12 Ay Prime Esas Kazanç" />
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
@@ -493,7 +506,7 @@ export default function HesaplamaFormu() {
             </div>
           </div>
         )}
-      </Kart>
+      </Kart>}
 
       {/* ── 5. Emsal Kazanç (İş Kazası/MH) ── */}
       {(raporTuru === "iskazasi" || raporTuru === "meslekhastligi") && (
