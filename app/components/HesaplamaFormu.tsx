@@ -1,33 +1,45 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { hesapla, HesaplaResult, AyKazanc, RaporTuru, TedaviTuru, UyariMesaj } from "../lib/hesapla";
+import { useState, useCallback, useEffect } from "react";
+import {
+  hesapla, HesaplaResult, AyKazanc, RaporTuru, TedaviTuru, KarmaDonem
+} from "../lib/hesapla";
 import { getAsgariUcret, getGunlukAsgariUcret } from "../lib/asgariUcret";
 
-/* ─── Yardımcı fonksiyonlar ─────────────────────────────────── */
+/* ── Yardımcılar ──────────────────────────────────────── */
 function getOnceki12Ay(baslangicStr: string): string[] {
+  if (!baslangicStr) return Array.from({ length: 12 }, (_, i) => {
+    const t = new Date(); t.setMonth(t.getMonth() - i - 1);
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}`;
+  });
   const d = new Date(baslangicStr);
   return Array.from({ length: 12 }, (_, i) => {
     const t = new Date(d.getFullYear(), d.getMonth() - i - 1, 1);
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}`;
   });
 }
-const AYLAR_TR = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
-const AYLAR_TR_UZUN = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
-function ayEtiket(yyyymm: string, kisa = false): string {
+const AYLAR_TR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+function ayEtiket(yyyymm: string): string {
   const [y, m] = yyyymm.split("-");
-  return kisa ? `${(kisa ? AYLAR_TR : AYLAR_TR_UZUN)[parseInt(m) - 1]} ${y}` : `${AYLAR_TR_UZUN[parseInt(m) - 1]} ${y}`;
+  return `${AYLAR_TR[parseInt(m) - 1]} ${y}`;
 }
-function getAsgariUcretForAy(yyyymm: string): number {
+function getAsgariAy(yyyymm: string): number {
   return getAsgariUcret(new Date(yyyymm + "-01"));
 }
 function fmt(n: number): string {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr); d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+function gunFarki(a: string, b: string): number {
+  return Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000) + 1);
+}
 
-/* ─── Tipler ─────────────────────────────────────────────────── */
 const RAPORT_LABELS: Record<RaporTuru, string> = {
-  hastalik: "Hastalık", iskazasi: "İş Kazası", meslekhastligi: "Meslek Hastalığı", analik: "Analık",
+  hastalik: "Hastalık", iskazasi: "İş Kazası",
+  meslekhastligi: "Meslek Hastalığı", analik: "Analık",
 };
 const TEDAVI_LABELS: Record<TedaviTuru, { k: string; oran: string }> = {
   ayakta: { k: "Ayakta", oran: "2/3" },
@@ -35,48 +47,97 @@ const TEDAVI_LABELS: Record<TedaviTuru, { k: string; oran: string }> = {
   karma: { k: "Karma", oran: "Miks" },
 };
 
-/* ─── Ana bileşen ────────────────────────────────────────────── */
+/* ── Ana bileşen ──────────────────────────────────────── */
 export default function HesaplamaFormu() {
   const bugun = new Date().toISOString().slice(0, 10);
 
   const [raporTuru, setRaporTuru] = useState<RaporTuru>("hastalik");
   const [tedaviTuru, setTedaviTuru] = useState<TedaviTuru>("ayakta");
+
+  // Rapor tarihi GİRİŞ MODları: "tarih" | "gun"
+  const [tarihMod, setTarihMod] = useState<"tarih" | "gun">("tarih");
   const [raporBaslangic, setRaporBaslangic] = useState(bugun);
   const [raporBitis, setRaporBitis] = useState(bugun);
-  const [yatarakGun, setYatarakGun] = useState(0);
+  const [raporGunSayisi, setRaporGunSayisi] = useState(1);
 
-  // Emsal kazanç (iş kazası/MH)
-  const [emsalKazanc, setEmsalKazanc] = useState(0);
-  const [emsalPrimGunu, setEmsalPrimGunu] = useState(0);
-  const [emsalAktif, setEmsalAktif] = useState(false);
+  // Tarih modunda bitiş güncellenir; gün modunda başlangıç + gün → bitiş
+  useEffect(() => {
+    if (tarihMod === "gun" && raporBaslangic) {
+      const b = addDays(raporBaslangic, raporGunSayisi - 1);
+      setRaporBitis(b);
+    }
+  }, [tarihMod, raporBaslangic, raporGunSayisi]);
 
-  // Prim/ikramiye üst tavan kontrolü
-  const [normalMaasAktif, setNormalMaasAktif] = useState(false);
-  const [normalMaaslar, setNormalMaaslar] = useState<number[]>(Array(12).fill(0));
+  // Karma tedavi dönemleri
+  const [karmaDonemleri, setKarmaDonemleri] = useState<KarmaDonem[]>([
+    { baslangic: bugun, bitis: bugun, tur: "yatarak" },
+    { baslangic: bugun, bitis: bugun, tur: "ayakta" },
+  ]);
+
+  // Kazanç modu: "manuel" | "asgari"
+  const [kazancMod, setKazancMod] = useState<"manuel" | "asgari">("manuel");
 
   const ayListesi = getOnceki12Ay(raporBaslangic);
   const [ayKazanclar, setAyKazanclar] = useState<AyKazanc[]>(() =>
     ayListesi.map((ay) => ({ ay, kazanc: 0, primGunu: 30 }))
   );
 
+  // Emsal kazanç
+  const [emsalAktif, setEmsalAktif] = useState(false);
+  const [emsalKazanc, setEmsalKazanc] = useState(0);
+  const [emsalPrimGunu, setEmsalPrimGunu] = useState(1);
+
+  // Prim/ikramiye tavan
+  const [normalMaasAktif, setNormalMaasAktif] = useState(false);
+  const [normalMaaslar, setNormalMaaslar] = useState<number[]>(Array(12).fill(0));
+
   const [sonuc, setSonuc] = useState<HesaplaResult | null>(null);
   const [hata, setHata] = useState<string | null>(null);
-  const [sonucAcik, setSonucAcik] = useState(false);
+  const [detayAcik, setDetayAcik] = useState(false);
 
-  /* ─── Handlers ─────────────────────────────────────────────── */
+  /* Tarih değişimi */
   const handleBaslangicChange = (val: string) => {
     setRaporBaslangic(val);
     setSonuc(null);
+    if (tarihMod === "gun") {
+      setRaporBitis(addDays(val, raporGunSayisi - 1));
+    }
     const yeniAylar = getOnceki12Ay(val);
     setAyKazanclar((prev) =>
       yeniAylar.map((ay) => prev.find((p) => p.ay === ay) ?? { ay, kazanc: 0, primGunu: 30 })
     );
+    if (kazancMod === "asgari") {
+      setAyKazanclar(yeniAylar.map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 })));
+    }
   };
 
-  const doldurAsgariUcret = useCallback(() => {
-    setAyKazanclar((prev) => prev.map((a) => ({ ...a, kazanc: getAsgariUcretForAy(a.ay) })));
+  const handleGunChange = (val: number) => {
+    const g = Math.max(1, val);
+    setRaporGunSayisi(g);
+    setRaporBitis(addDays(raporBaslangic, g - 1));
     setSonuc(null);
-  }, []);
+  };
+
+  const handleBitisChange = (val: string) => {
+    setRaporBitis(val);
+    if (raporBaslangic && val) {
+      setRaporGunSayisi(gunFarki(raporBaslangic, val));
+    }
+    setSonuc(null);
+  };
+
+  /* Asgari ücretle doldur */
+  const doldurAsgariUcret = useCallback(() => {
+    const aylar = getOnceki12Ay(raporBaslangic);
+    setAyKazanclar(aylar.map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 })));
+    setKazancMod("asgari");
+    setSonuc(null);
+  }, [raporBaslangic]);
+
+  const manueleMod = () => {
+    setKazancMod("manuel");
+    setSonuc(null);
+  };
 
   const updateAy = (idx: number, field: "kazanc" | "primGunu", val: string) => {
     setAyKazanclar((prev) => {
@@ -87,25 +148,42 @@ export default function HesaplamaFormu() {
     setSonuc(null);
   };
 
+  /* Karma dönem güncelle */
+  const updateKarma = (idx: number, field: keyof KarmaDonem, val: string) => {
+    setKarmaDonemleri((prev) => {
+      const k = [...prev];
+      k[idx] = { ...k[idx], [field]: val };
+      return k;
+    });
+    setSonuc(null);
+  };
+  const addKarmaDonem = () => {
+    setKarmaDonemleri((prev) => [...prev, { baslangic: raporBitis, bitis: raporBitis, tur: "ayakta" }]);
+  };
+  const removeKarmaDonem = (idx: number) => {
+    setKarmaDonemleri((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  /* Hesapla */
   const handleHesapla = () => {
     setHata(null); setSonuc(null);
     if (!raporBaslangic || !raporBitis) { setHata("Rapor tarihlerini giriniz."); return; }
     if (new Date(raporBitis) < new Date(raporBaslangic)) { setHata("Bitiş tarihi başlangıçtan önce olamaz."); return; }
-    const isKazaMH = raporTuru === "iskazasi" || raporTuru === "meslekhastligi";
-    const baz = isKazaMH ? ayKazanclar.slice(0, 3) : ayKazanclar.slice(0, 12);
-    if (baz.reduce((s, a) => s + a.primGunu, 0) === 0) { setHata("Baz dönemde prim günü sıfır olamaz."); return; }
+    const bazGun = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
+    if (bazGun === 0) { setHata("12 ay toplam prim günü sıfır olamaz."); return; }
     try {
       const r = hesapla({
         raporTuru, tedaviTuru, raporBaslangic, raporBitis,
-        yatarakGun: tedaviTuru === "karma" ? yatarakGun : undefined,
+        karmaDonemleri: tedaviTuru === "karma" ? karmaDonemleri : undefined,
         ayKazanclar,
         emsalKazanc: emsalAktif ? emsalKazanc : undefined,
         emsalPrimGunu: emsalAktif ? emsalPrimGunu : undefined,
         normalMaasKazanc: normalMaasAktif ? normalMaaslar : undefined,
+        asgariDolu: kazancMod === "asgari",
       });
       setSonuc(r);
-      setSonucAcik(true);
-      setTimeout(() => document.getElementById("sonuc-bolum")?.scrollIntoView({ behavior: "smooth" }), 100);
+      setDetayAcik(false);
+      setTimeout(() => document.getElementById("sonuc-alan")?.scrollIntoView({ behavior: "smooth" }), 100);
     } catch (e) {
       setHata("Hesaplama hatası: " + (e as Error).message);
     }
@@ -113,31 +191,30 @@ export default function HesaplamaFormu() {
 
   const handleTemizle = () => {
     setSonuc(null); setHata(null);
+    setKazancMod("manuel");
     setAyKazanclar(ayListesi.map((ay) => ({ ay, kazanc: 0, primGunu: 30 })));
-    setYatarakGun(0); setEmsalKazanc(0); setEmsalPrimGunu(0);
+    setEmsalKazanc(0); setEmsalPrimGunu(1);
     setNormalMaaslar(Array(12).fill(0));
+    setRaporGunSayisi(1);
+    setRaporBitis(raporBaslangic);
   };
 
-  /* ─── Anlık özet ───────────────────────────────────────────── */
-  const isKazaMH = raporTuru === "iskazasi" || raporTuru === "meslekhastligi";
-  const bazAylar = isKazaMH ? ayKazanclar.slice(0, 3) : ayKazanclar.slice(0, 12);
-  const canliToplamKazanc = bazAylar.reduce((s, a) => s + a.kazanc, 0);
-  const canliToplamGun = bazAylar.reduce((s, a) => s + a.primGunu, 0);
-  const canliGunlukOrt = canliToplamGun > 0 ? canliToplamKazanc / canliToplamGun : 0;
-  const toplamRaporGun = raporBaslangic && raporBitis
-    ? Math.max(0, Math.round((new Date(raporBitis).getTime() - new Date(raporBaslangic).getTime()) / 86400000) + 1) : 0;
-  const bitisAsgari = raporBitis ? getGunlukAsgariUcret(new Date(raporBitis)) : 0;
+  /* Anlık özet */
+  const toplamRaporGun = raporBaslangic && raporBitis ? gunFarki(raporBaslangic, raporBitis) : 0;
   const onikiAyGun = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
+  const bazKazanc = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.kazanc, 0);
+  const bazGun = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
+  const canliOrt = bazGun > 0 ? bazKazanc / bazGun : 0;
+  const bitisAsgari = raporBaslangic ? getGunlukAsgariUcret(new Date(raporBaslangic)) : 0;
 
-  /* ─── Render ───────────────────────────────────────────────── */
   return (
-    <div style={{ maxWidth: 680, margin: "0 auto", padding: "12px 12px 32px" }}>
+    <div style={{ maxWidth: 680, margin: "0 auto", padding: "12px 12px 40px" }}>
 
       {/* ── Başlık ── */}
       <header style={{
-        background: "linear-gradient(135deg,#1a4b8c,#0f3060)",
-        borderRadius: 12, padding: "16px 18px", marginBottom: 14,
-        color: "#fff", display: "flex", alignItems: "center", gap: 14,
+        background: "linear-gradient(135deg,#1a4b8c,#0f3060)", borderRadius: 12,
+        padding: "16px 18px", marginBottom: 14, color: "#fff",
+        display: "flex", alignItems: "center", gap: 14,
       }}>
         <div style={{
           background: "rgba(255,255,255,0.18)", borderRadius: 10,
@@ -149,237 +226,285 @@ export default function HesaplamaFormu() {
             SGK Geçici İş Göremezlik<br />Ödeneği Hesaplama
           </h1>
           <p style={{ margin: "4px 0 0", fontSize: 11, opacity: 0.75 }}>
-            5510/17 · Genelge 2021/13
+            5510/17 · Genelge 2016/21 (2025/3 dahil)
           </p>
         </div>
       </header>
 
       {/* ── 1. Rapor Türü ── */}
       <Kart>
-        <BolumBaslik no="1" baslik="Rapor Türü" />
+        <Baslik no="1" metin="Rapor Türü" />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {(Object.keys(RAPORT_LABELS) as RaporTuru[]).map((t) => (
-            <button key={t} onClick={() => { setRaporTuru(t); setSonuc(null); }}
-              style={{
-                padding: "10px 6px", borderRadius: 8, cursor: "pointer",
-                fontSize: 13, fontWeight: raporTuru === t ? 700 : 500,
-                background: raporTuru === t ? "#1a4b8c" : "#f0f4fa",
-                color: raporTuru === t ? "#fff" : "#1a4b8c",
-                border: raporTuru === t ? "2px solid #1a4b8c" : "2px solid #d1dce8",
-              }}>
+            <SeçBtn key={t} aktif={raporTuru === t} renk="#1a4b8c"
+              onClick={() => { setRaporTuru(t); setSonuc(null); }}>
               {RAPORT_LABELS[t]}
-            </button>
+            </SeçBtn>
           ))}
         </div>
-        <InfoBox renk="mavi">
-          {raporTuru === "hastalik" && <>Hastalık: <strong>son 12 ayın tamamı</strong> baz alınır · ilk 2 gün ödenmez · 90 gün prim şartı</>}
-          {raporTuru === "iskazasi" && <>İş Kazası: <strong>12 aydaki son 3 ay</strong> baz alınır · ilk günden ödeme · 90 gün şartı aranmaz</>}
-          {raporTuru === "meslekhastligi" && <>Meslek Hastalığı: <strong>12 aydaki son 3 ay</strong> baz alınır · ilk 2 gün ödenmez</>}
-          {raporTuru === "analik" && <>Analık: <strong>son 12 ayın tamamı</strong> · ilk günden ödeme · max <strong>24 hafta (168 gün)</strong></>}
-        </InfoBox>
+        <BilgiKutu renk="mavi">
+          {raporTuru === "hastalik" && <>Hastalık: son <b>12 ayın tamamı</b> baz · ilk 2 gün ödenmez · 90 gün prim şartı</>}
+          {raporTuru === "iskazasi" && <>İş Kazası: son <b>12 ayın tamamı</b> baz · ilk günden ödeme · 90 gün şartı aranmaz</>}
+          {raporTuru === "meslekhastligi" && <>Meslek Hastalığı: son <b>12 ayın tamamı</b> baz · ilk 2 gün ödenmez</>}
+          {raporTuru === "analik" && <>Analık: son <b>12 ayın tamamı</b> · ilk günden ödeme · max <b>24 hafta / 168 gün</b></>}
+        </BilgiKutu>
       </Kart>
 
       {/* ── 2. Tedavi Türü ── */}
       <Kart>
-        <BolumBaslik no="2" baslik="Tedavi Türü" />
+        <Baslik no="2" metin="Tedavi Türü" />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
           {(Object.keys(TEDAVI_LABELS) as TedaviTuru[]).map((t) => {
             const { k, oran } = TEDAVI_LABELS[t];
             return (
-              <button key={t} onClick={() => { setTedaviTuru(t); setSonuc(null); }}
-                style={{
-                  padding: "10px 4px", borderRadius: 8, cursor: "pointer",
-                  fontSize: 12, fontWeight: tedaviTuru === t ? 700 : 500,
-                  background: tedaviTuru === t ? "#1a7a4a" : "#f0f4fa",
-                  color: tedaviTuru === t ? "#fff" : "#1a7a4a",
-                  border: tedaviTuru === t ? "2px solid #1a7a4a" : "2px solid #d1dce8",
-                  lineHeight: 1.4,
-                }}>
-                {k}<br /><span style={{ fontSize: 11, opacity: 0.85 }}>({oran})</span>
-              </button>
+              <SeçBtn key={t} aktif={tedaviTuru === t} renk="#1a7a4a"
+                onClick={() => { setTedaviTuru(t); setSonuc(null); }}>
+                {k}<br /><span style={{ fontSize: 11 }}>({oran})</span>
+              </SeçBtn>
             );
           })}
         </div>
+
+        {/* Karma tedavi dönemleri */}
         {tedaviTuru === "karma" && (
-          <div style={{ marginTop: 12 }}>
-            <Label>Yatarak tedavi gün sayısı</Label>
-            <input type="number" min={0} max={toplamRaporGun} value={yatarakGun || ""}
-              placeholder="0" onChange={(e) => { setYatarakGun(parseInt(e.target.value) || 0); setSonuc(null); }}
-              style={{ ...inp, maxWidth: 120 }} />
-            {toplamRaporGun > 0 && (
-              <span style={{ marginLeft: 10, fontSize: 12, color: "#64748b" }}>
-                Ayakta: {Math.max(0, toplamRaporGun - yatarakGun)} gün
-              </span>
-            )}
+          <div style={{ marginTop: 14 }}>
+            <BilgiKutu renk="sari">
+              <b>Önemli:</b> Hastalık raporunda ilk 2 gün ödenmez. Yatarak dönem rapor başında ise yatarak günlerden, ayakta başında ise ayakta günlerden düşülür. Lütfen dönemleri kronolojik sıraya göre giriniz.
+            </BilgiKutu>
+            <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+              {karmaDonemleri.map((d, idx) => (
+                <div key={idx} style={{
+                  background: d.tur === "yatarak" ? "#f0f4fa" : "#f0fdf4",
+                  border: `1px solid ${d.tur === "yatarak" ? "#bfdbfe" : "#86efac"}`,
+                  borderRadius: 8, padding: "10px 12px",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>Dönem {idx + 1}</span>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <SeçBtn aktif={d.tur === "yatarak"} renk="#1a4b8c" onClick={() => updateKarma(idx, "tur", "yatarak")} kucuk>
+                        Yatarak (1/2)
+                      </SeçBtn>
+                      <SeçBtn aktif={d.tur === "ayakta"} renk="#1a7a4a" onClick={() => updateKarma(idx, "tur", "ayakta")} kucuk>
+                        Ayakta (2/3)
+                      </SeçBtn>
+                      {karmaDonemleri.length > 2 && (
+                        <button onClick={() => removeKarmaDonem(idx)} style={{
+                          background: "#fee2e2", color: "#b91c1c", border: "none",
+                          borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer",
+                        }}>✕</button>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div>
+                      <label style={lb}>Başlangıç</label>
+                      <input type="date" value={d.baslangic} min={raporBaslangic} max={raporBitis}
+                        onChange={(e) => updateKarma(idx, "baslangic", e.target.value)} style={inp} />
+                    </div>
+                    <div>
+                      <label style={lb}>Bitiş</label>
+                      <input type="date" value={d.bitis} min={d.baslangic} max={raporBitis}
+                        onChange={(e) => updateKarma(idx, "bitis", e.target.value)} style={inp} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+                    {d.baslangic && d.bitis ? `${gunFarki(d.baslangic, d.bitis)} gün` : "—"}
+                  </div>
+                </div>
+              ))}
+              <button onClick={addKarmaDonem} style={{
+                background: "#f0f4fa", border: "1.5px dashed #d1dce8", borderRadius: 8,
+                padding: "8px", fontSize: 13, color: "#1a4b8c", cursor: "pointer", fontWeight: 600,
+              }}>+ Dönem Ekle</button>
+            </div>
           </div>
         )}
       </Kart>
 
       {/* ── 3. Rapor Tarihleri ── */}
       <Kart>
-        <BolumBaslik no="3" baslik="Rapor Tarihleri" />
+        <Baslik no="3" metin="Rapor Tarihleri" />
+
+        {/* Mod seçimi */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <SeçBtn aktif={tarihMod === "tarih"} renk="#475569" onClick={() => setTarihMod("tarih")} kucuk>
+            📅 Tarih Gir
+          </SeçBtn>
+          <SeçBtn aktif={tarihMod === "gun"} renk="#475569" onClick={() => setTarihMod("gun")} kucuk>
+            🔢 Gün Sayısı Gir
+          </SeçBtn>
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
-            <Label>Başlangıç</Label>
+            <label style={lb}>Başlangıç Tarihi</label>
             <input type="date" value={raporBaslangic}
               onChange={(e) => handleBaslangicChange(e.target.value)} style={inp} />
           </div>
-          <div>
-            <Label>Bitiş</Label>
-            <input type="date" value={raporBitis} min={raporBaslangic}
-              onChange={(e) => { setRaporBitis(e.target.value); setSonuc(null); }} style={inp} />
-          </div>
+          {tarihMod === "tarih" ? (
+            <div>
+              <label style={lb}>Bitiş Tarihi</label>
+              <input type="date" value={raporBitis} min={raporBaslangic}
+                onChange={(e) => handleBitisChange(e.target.value)} style={inp} />
+            </div>
+          ) : (
+            <div>
+              <label style={lb}>Rapor Gün Sayısı</label>
+              <input type="number" min={1} value={raporGunSayisi}
+                onChange={(e) => handleGunChange(parseInt(e.target.value) || 1)} style={inp} />
+            </div>
+          )}
         </div>
 
-        {/* Anlık özet chips */}
         {toplamRaporGun > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
             <Chip renk="#1a4b8c" etiket="Rapor Günü" deger={`${toplamRaporGun} gün`} />
-            <Chip renk={onikiAyGun >= 90 ? "#1a7a4a" : "#c0392b"} etiket="12 Ay Prim Günü" deger={`${onikiAyGun} gün`} />
-            <Chip renk="#1a4b8c" etiket="Bitiş Günlük Asgari" deger={`${fmt(bitisAsgari)} ₺`} />
-            {canliGunlukOrt > 0 && (
-              <Chip renk={canliGunlukOrt >= bitisAsgari ? "#1a7a4a" : "#d97706"} etiket="Günlük Ort." deger={`${fmt(canliGunlukOrt)} ₺`} />
-            )}
+            <Chip renk="#475569" etiket="Bitiş" deger={raporBitis} />
+            <Chip renk={onikiAyGun >= 90 ? "#1a7a4a" : "#c0392b"} etiket="12 Ay Prim" deger={`${onikiAyGun} gün`} />
+            <Chip renk={canliOrt >= bitisAsgari ? "#1a7a4a" : "#d97706"} etiket="Günlük Ort." deger={`${fmt(canliOrt)} ₺`} />
           </div>
         )}
 
-        {/* 90 gün uyarısı */}
         {onikiAyGun > 0 && onikiAyGun < 90 && (
-          <InfoBox renk="kirmizi">
-            ⚠️ Son 12 ayda <strong>{onikiAyGun} gün</strong> prim bulunmaktadır. Ödeneğe hak kazanmak için <strong>90 gün</strong> gerekmektedir.
-          </InfoBox>
+          <BilgiKutu renk="kirmizi">
+            ⚠️ Son 12 ayda <b>{onikiAyGun} gün</b> prim var. Ödeneğe hak için <b>90 gün</b> gereklidir.
+          </BilgiKutu>
         )}
       </Kart>
 
       {/* ── 4. Kazanç Tablosu ── */}
       <Kart>
-        <BolumBaslik no="4" baslik={`Son ${isKazaMH ? "3 Ay Kazanç (12 ay baz)" : "12 Ay Prime Esas Kazanç"}`} />
+        <Baslik no="4" metin="Son 12 Ay Prime Esas Kazanç" />
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
           <button onClick={doldurAsgariUcret} style={eylemBtn("#1a4b8c")}>
             📋 Asgari Ücretle Doldur
           </button>
-          <button onClick={handleTemizle} style={eylemBtn("#64748b")}>
+          {kazancMod === "asgari" && (
+            <button onClick={manueleMod} style={eylemBtn("#64748b")}>
+              ✏️ Manuel Düzenle
+            </button>
+          )}
+          <button onClick={handleTemizle} style={eylemBtn("#9ca3af")}>
             🗑️ Sıfırla
           </button>
         </div>
 
-        {/* Mobil uyumlu kart tablosu */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {/* Başlık satırı */}
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1fr", gap: 6, padding: "0 4px" }}>
-            <span style={kolBaslik}>Ay</span>
-            <span style={kolBaslik}>Brüt Kazanç (₺)</span>
-            <span style={kolBaslik}>Prim Gün</span>
-          </div>
-
-          {ayKazanclar.map((a, idx) => {
-            const bazMi = isKazaMH ? idx < 3 : true;
-            const ayAsgari = getAsgariUcretForAy(a.ay);
-            const altSinir = a.kazanc > 0 && a.kazanc < ayAsgari;
-            return (
-              <div key={a.ay} style={{
-                display: "grid", gridTemplateColumns: "2fr 2fr 1fr", gap: 6,
-                background: bazMi ? (idx % 2 === 0 ? "#fff" : "#f7faff") : "#f5f5f5",
-                borderRadius: 7, padding: "6px 4px",
-                border: bazMi ? "1px solid #e8eef7" : "1px solid #ebebeb",
-                opacity: bazMi ? 1 : 0.55,
-              }}>
-                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: bazMi ? "#1e293b" : "#94a3b8" }}>
-                    {ayEtiket(a.ay)}
-                  </span>
-                  <span style={{ fontSize: 10, color: "#94a3b8" }}>
-                    Asg: {fmt(ayAsgari)} ₺
-                  </span>
-                  {!bazMi && <span style={{ fontSize: 10, color: "#cbd5e1" }}>baz dışı</span>}
-                </div>
-                <input type="number" min={0} step={0.01} value={a.kazanc || ""} placeholder="0,00"
-                  onChange={(e) => updateAy(idx, "kazanc", e.target.value)}
-                  style={{
-                    ...tabloGiris,
-                    borderColor: altSinir ? "#fbbf24" : "#d1dce8",
-                    background: altSinir ? "#fffbeb" : "#fff",
-                  }} />
-                <input type="number" min={0} max={30} value={a.primGunu || ""} placeholder="30"
-                  onChange={(e) => updateAy(idx, "primGunu", e.target.value)}
-                  style={tabloGiris} />
-              </div>
-            );
-          })}
-
-          {/* Toplam satırı */}
+        {kazancMod === "asgari" ? (
+          /* Asgari mod: sadece özet göster */
           <div style={{
-            display: "grid", gridTemplateColumns: "2fr 2fr 1fr", gap: 6,
-            background: "#e8f0fa", borderRadius: 7, padding: "8px 4px",
-            fontWeight: 700, fontSize: 13,
+            background: "#f0fdf4", border: "1px solid #86efac",
+            borderRadius: 8, padding: "12px 14px",
           }}>
-            <span style={{ color: "#1a4b8c", fontSize: 12, display: "flex", alignItems: "center" }}>
-              Baz dönem toplamı
-            </span>
-            <span style={{ color: "#1a4b8c" }}>{fmt(canliToplamKazanc)} ₺</span>
-            <span style={{ color: "#1a4b8c" }}>{canliToplamGun}</span>
+            <div style={{ fontWeight: 700, color: "#1a7a4a", marginBottom: 8, fontSize: 13 }}>
+              ✓ Her ay asgari ücret üzerinden dolduruldu (prim gün: 30)
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {ayKazanclar.map((a) => (
+                <div key={a.ay} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#374151" }}>
+                  <span>{ayEtiket(a.ay)}</span>
+                  <span style={{ fontWeight: 600 }}>{fmt(a.kazanc)} ₺ / {a.primGunu} gün</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ borderTop: "1px solid #86efac", marginTop: 10, paddingTop: 8, display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 13, color: "#1a7a4a" }}>
+              <span>Toplam</span>
+              <span>{fmt(bazKazanc)} ₺ / {bazGun} gün → {fmt(canliOrt)} ₺/gün</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Manuel mod: düzenlenebilir tablo */
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 6, padding: "0 2px" }}>
+              <span style={th}>Ay</span>
+              <span style={th}>Brüt Kazanç (₺)</span>
+              <span style={th}>Prim Gün</span>
+            </div>
+            {ayKazanclar.map((a, idx) => {
+              const ayAsgari = getAsgariAy(a.ay);
+              const altSinir = a.kazanc > 0 && a.kazanc < ayAsgari;
+              return (
+                <div key={a.ay} style={{
+                  display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 6,
+                  background: idx % 2 === 0 ? "#fff" : "#f9fbff",
+                  borderRadius: 6, padding: "4px 2px",
+                  border: "1px solid #f0f4fa",
+                }}>
+                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", paddingLeft: 2 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#1e293b" }}>{ayEtiket(a.ay)}</span>
+                    <span style={{ fontSize: 10, color: "#94a3b8" }}>Asg: {fmt(ayAsgari)} ₺</span>
+                  </div>
+                  <input type="number" min={0} step={0.01} value={a.kazanc || ""} placeholder="0,00"
+                    onChange={(e) => updateAy(idx, "kazanc", e.target.value)}
+                    style={{ ...tabloInp, borderColor: altSinir ? "#fbbf24" : "#d1dce8", background: altSinir ? "#fffbeb" : "#fff" }} />
+                  <input type="number" min={0} max={30} value={a.primGunu || ""} placeholder="30"
+                    onChange={(e) => updateAy(idx, "primGunu", e.target.value)}
+                    style={tabloInp} />
+                </div>
+              );
+            })}
+            <div style={{
+              display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 6,
+              background: "#e8f0fa", borderRadius: 6, padding: "7px 2px", fontWeight: 700, fontSize: 13,
+            }}>
+              <span style={{ color: "#1a4b8c", paddingLeft: 2, fontSize: 12, display: "flex", alignItems: "center" }}>Toplam</span>
+              <span style={{ color: "#1a4b8c" }}>{fmt(bazKazanc)} ₺</span>
+              <span style={{ color: "#1a4b8c" }}>{bazGun}</span>
+            </div>
+          </div>
+        )}
       </Kart>
 
-      {/* ── 5. İş Kazası / MH Emsal Kazanç (opsiyonel) ── */}
-      {isKazaMH && (
+      {/* ── 5. Emsal Kazanç (İş Kazası/MH) ── */}
+      {(raporTuru === "iskazasi" || raporTuru === "meslekhastligi") && (
         <Kart>
-          <BolumBaslik no="5" baslik="İş Kazası / MH Emsal Kazanç (İsteğe Bağlı)" />
-          <InfoBox renk="sari">
-            Kaza tarihinden önce o ayda hiç çalışma yoksa, sigortalının o aydaki prime esas kazanç emsal değeri dikkate alınır.
-          </InfoBox>
-          <div style={{ marginTop: 10 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
-              <input type="checkbox" checked={emsalAktif} onChange={(e) => setEmsalAktif(e.target.checked)} />
-              Emsal kazanç kullanılsın
-            </label>
-          </div>
+          <Baslik no="5" metin="Emsal Kazanç (İsteğe Bağlı)" />
+          <BilgiKutu renk="sari">
+            Kaza/tanı tarihinden önce o ayda hiç çalışma yoksa veya aynı gün kaza geçirildiyse emsal kazanç esas alınır.
+          </BilgiKutu>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, marginTop: 10 }}>
+            <input type="checkbox" checked={emsalAktif} onChange={(e) => setEmsalAktif(e.target.checked)} />
+            Emsal kazanç uygulansın
+          </label>
           {emsalAktif && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 10 }}>
               <div>
-                <Label>Emsal Günlük Kazanç (₺)</Label>
+                <label style={lb}>Emsal Kazanç (₺)</label>
                 <input type="number" min={0} value={emsalKazanc || ""} placeholder="0,00"
                   onChange={(e) => setEmsalKazanc(parseFloat(e.target.value) || 0)} style={inp} />
               </div>
               <div>
-                <Label>Emsal Prim Günü</Label>
-                <input type="number" min={0} max={30} value={emsalPrimGunu || ""} placeholder="30"
-                  onChange={(e) => setEmsalPrimGunu(parseInt(e.target.value) || 0)} style={inp} />
+                <label style={lb}>Çalışılan Gün</label>
+                <input type="number" min={1} max={30} value={emsalPrimGunu || ""}
+                  onChange={(e) => setEmsalPrimGunu(parseInt(e.target.value) || 1)} style={inp} />
               </div>
             </div>
           )}
         </Kart>
       )}
 
-      {/* ── 6. Prim/İkramiye Üst Tavan (opsiyonel) ── */}
+      {/* ── 6. Prim/İkramiye Tavan ── */}
       <Kart>
-        <BolumBaslik no={isKazaMH ? "6" : "5"} baslik="Prim / İkramiye Tavan Kontrolü (İsteğe Bağlı)" />
-        <InfoBox renk="mor">
-          Kazançlara prim veya ikramiye eklenmiş ise, toplam kazanç <strong>normal maaş ortalamasının %150'sini</strong> geçemez.
-        </InfoBox>
-        <div style={{ marginTop: 10 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
-            <input type="checkbox" checked={normalMaasAktif} onChange={(e) => setNormalMaasAktif(e.target.checked)} />
-            Prim/İkramiye tavan kontrolü uygulansın
-          </label>
-        </div>
+        <Baslik no={raporTuru === "iskazasi" || raporTuru === "meslekhastligi" ? "6" : "5"} metin="Prim / İkramiye Tavan Kontrolü (İsteğe Bağlı)" />
+        <BilgiKutu renk="mor">
+          Kazanca prim/ikramiye eklendiyse toplam, <b>normal maaş ortalamasının %150'sini</b> geçemez.
+        </BilgiKutu>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, marginTop: 10 }}>
+          <input type="checkbox" checked={normalMaasAktif} onChange={(e) => setNormalMaasAktif(e.target.checked)} />
+          %150 tavan kontrolü uygulansın
+        </label>
         {normalMaasAktif && (
           <div style={{ marginTop: 12 }}>
-            <p style={{ margin: "0 0 8px", fontSize: 12, color: "#64748b" }}>
-              Her ay için normal maaş (ikramiye/prim hariç) brüt kazancı giriniz:
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {(isKazaMH ? ayKazanclar.slice(0, 3) : ayKazanclar.slice(0, 12)).map((a, idx) => (
+            <p style={{ margin: "0 0 8px", fontSize: 12, color: "#64748b" }}>Her ay için normal maaş (prim/ikramiye hariç) brüt:</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {ayKazanclar.slice(0, 12).map((a, idx) => (
                 <div key={a.ay} style={{ display: "grid", gridTemplateColumns: "2fr 2fr", gap: 8, alignItems: "center" }}>
                   <span style={{ fontSize: 12, color: "#475569" }}>{ayEtiket(a.ay)}</span>
                   <input type="number" min={0} value={normalMaaslar[idx] || ""} placeholder="Normal maaş"
                     onChange={(e) => {
-                      const k = [...normalMaaslar];
-                      k[idx] = parseFloat(e.target.value) || 0;
+                      const k = [...normalMaaslar]; k[idx] = parseFloat(e.target.value) || 0;
                       setNormalMaaslar(k);
-                    }} style={tabloGiris} />
+                    }} style={tabloInp} />
                 </div>
               ))}
             </div>
@@ -389,58 +514,53 @@ export default function HesaplamaFormu() {
 
       {/* ── Hata ── */}
       {hata && (
-        <div style={{
-          background: "#fef2f2", border: "1px solid #fca5a5",
-          borderRadius: 8, padding: "12px 14px", color: "#b91c1c", fontSize: 13, marginBottom: 12,
-        }}>❌ {hata}</div>
+        <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "12px 14px", color: "#b91c1c", fontSize: 13, marginBottom: 12 }}>
+          ❌ {hata}
+        </div>
       )}
 
-      {/* ── Hesapla Butonu ── */}
+      {/* ── Hesapla ── */}
       <button onClick={handleHesapla} style={{
         width: "100%", background: "linear-gradient(135deg,#1a4b8c,#0f3060)",
         color: "#fff", border: "none", borderRadius: 10,
-        padding: "14px", fontSize: 16, fontWeight: 800, cursor: "pointer",
-        marginBottom: 16, letterSpacing: "-0.3px",
+        padding: "15px", fontSize: 16, fontWeight: 800, cursor: "pointer", marginBottom: 16,
       }}>
         🧮 Hesapla
       </button>
 
       {/* ── Sonuç ── */}
       {sonuc && (
-        <div id="sonuc-bolum">
-
-          {/* Uyarı mesajları */}
+        <div id="sonuc-alan">
           {sonuc.uyarilar.map((u, i) => (
             <div key={i} style={{
               background: u.tip === "hata" ? "#fef2f2" : u.tip === "uyari" ? "#fffbeb" : "#eff6ff",
               border: `1px solid ${u.tip === "hata" ? "#fca5a5" : u.tip === "uyari" ? "#fde68a" : "#bfdbfe"}`,
               borderRadius: 8, padding: "10px 14px",
               color: u.tip === "hata" ? "#b91c1c" : u.tip === "uyari" ? "#92400e" : "#1e40af",
-              fontSize: 13, marginBottom: 10,
+              fontSize: 13, marginBottom: 8,
             }}>
               {u.tip === "hata" ? "❌" : u.tip === "uyari" ? "⚠️" : "ℹ️"} {u.mesaj}
             </div>
           ))}
 
-          {/* Ana sonuç kartları */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-            <SonucKart icon="📅" etiket="Rapor Günü" deger={`${sonuc.toplamRaporGun} gün`} renk="#1a4b8c" />
-            <SonucKart icon="✅" etiket="Ödenecek Gün" deger={`${sonuc.odenenGun} gün`} renk="#1a7a4a" />
-            <SonucKart icon="📊" etiket="12 Ay Prim Günü" deger={`${sonuc.toplamOnikiAyPrimGun} gün`}
+          {/* Kart özeti */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+            <SonKart icon="📅" etiket="Rapor Günü" deger={`${sonuc.toplamRaporGun} gün`} renk="#1a4b8c" />
+            <SonKart icon="✅" etiket="Ödenecek Gün" deger={`${sonuc.odenenGun} gün`} renk="#1a7a4a" />
+            <SonKart icon="📊" etiket="12 Ay Prim" deger={`${sonuc.toplamOnikiAyPrimGun} gün`}
               renk={sonuc.doksan_gun_sartiSaglandi ? "#1a7a4a" : "#c0392b"}
-              alt={sonuc.doksan_gun_sartiSaglandi ? "✓ 90 gün şartı OK" : "✗ 90 gün şartı SAĞLANMADI"} />
-            <SonucKart icon="💰" etiket="Günlük Esas Kazanç" deger={`${fmt(sonuc.gunlukKazancEsas)} ₺`}
+              alt={sonuc.doksan_gun_sartiSaglandi ? "✓ 90 gün şartı OK" : "✗ 90 gün şartı YOK"} />
+            <SonKart icon="💰" etiket="Günlük Esas Kazanç" deger={`${fmt(sonuc.gunlukKazancEsas)} ₺`}
               renk={sonuc.asgariUcretUygulandimi ? "#d97706" : "#1a4b8c"}
-              alt={sonuc.asgariUcretUygulandimi ? "⚠️ Asgari ücret uygulandı" :
+              alt={sonuc.asgariUcretUygulandimi ? "⚠️ Asgari ücret" :
                 sonuc.ikiKatTavanUygulandimi ? "⚠️ 2× asgari tavan" :
                 sonuc.yuzElliTavanUygulandimi ? "⚠️ %150 tavan" : undefined} />
           </div>
 
-          {/* Toplam ödenek */}
+          {/* Toplam */}
           <div style={{
             background: "linear-gradient(135deg,#c0392b,#922b21)",
-            borderRadius: 12, padding: "18px 20px", marginBottom: 14,
-            color: "#fff", textAlign: "center",
+            borderRadius: 12, padding: "18px 20px", marginBottom: 12, color: "#fff", textAlign: "center",
           }}>
             <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 4 }}>TOPLAM ÖDENEK</div>
             <div style={{ fontSize: 28, fontWeight: 900 }}>{fmt(sonuc.toplamOdenek)} ₺</div>
@@ -451,54 +571,53 @@ export default function HesaplamaFormu() {
             )}
           </div>
 
-          {/* Detay tablosu (açılır/kapanır) */}
+          {/* Detay tablosu */}
           <Kart>
-            <button onClick={() => setSonucAcik(!sonucAcik)} style={{
+            <button onClick={() => setDetayAcik(!detayAcik)} style={{
               width: "100%", background: "none", border: "none", cursor: "pointer",
               display: "flex", justifyContent: "space-between", alignItems: "center",
               padding: 0, fontSize: 14, fontWeight: 700, color: "#1a4b8c",
             }}>
               <span>📊 Hesaplama Detayı</span>
-              <span style={{ fontSize: 18 }}>{sonucAcik ? "▲" : "▼"}</span>
+              <span style={{ fontSize: 18 }}>{detayAcik ? "▲" : "▼"}</span>
             </button>
-
-            {sonucAcik && (
+            {detayAcik && (
               <div style={{ marginTop: 14 }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <tbody>
-                    <DR etiket="Baz dönem toplam kazanç" deger={`${fmt(sonuc.bazDonemleriKazanc)} ₺`} />
-                    <DR etiket="Baz dönem toplam prim günü" deger={`${sonuc.bazDonemleriGun} gün`} />
-                    <DR etiket="Günlük brüt ortalama" deger={`${fmt(sonuc.gunlukOrtalamaBrut)} ₺`} />
-                    {sonuc.yuzElliTavanUygulandimi && (
-                      <DR etiket="Normal maaş ort. × 1.5 tavan" deger={`${fmt(sonuc.normalMaasOrtalama * 1.5)} ₺`} vurgu="uyari" />
-                    )}
-                    {sonuc.ikiKatTavanUygulandimi && (
-                      <DR etiket="180 gün altı → 2× asgari tavan" deger={`${fmt(sonuc.ikiKatAsgariTavan)} ₺`} vurgu="uyari" />
-                    )}
-                    <DR etiket="Rapor bitiş günlük asgari ücret" deger={`${fmt(sonuc.raporBitisAsgariGunluk)} ₺`} />
-                    <DR etiket="Esas alınan günlük kazanç" deger={`${fmt(sonuc.gunlukKazancEsas)} ₺`}
-                      vurgu={sonuc.asgariUcretUygulandimi ? "uyari" : "basari"}
-                      not={sonuc.asgariUcretUygulandimi ? "Asgari ücret" : "Hesaplanan"} />
-                    <DR etiket="Ayakta günlük ödenek (×2/3)" deger={`${fmt(sonuc.ayaktaGunluk)} ₺`} />
-                    <DR etiket="Yatarak günlük ödenek (×1/2)" deger={`${fmt(sonuc.yatarakGunluk)} ₺`} />
-                    {sonuc.ayaktaToplamOdenek > 0 && (
-                      <DR etiket={`Ayakta toplam`} deger={`${fmt(sonuc.ayaktaToplamOdenek)} ₺`} />
-                    )}
-                    {sonuc.yatarakToplamOdenek > 0 && (
-                      <DR etiket={`Yatarak toplam`} deger={`${fmt(sonuc.yatarakToplamOdenek)} ₺`} />
-                    )}
-                    <DR etiket="TOPLAM ÖDENEK" deger={`${fmt(sonuc.toplamOdenek)} ₺`} vurgu="toplam" />
+                    <DR l="Toplam rapor günü" d={`${sonuc.toplamRaporGun} gün`} />
+                    {sonuc.analikHaftaAsimi && <DR l="Analık maks 24 hafta (168 gün) uygulandı" d={`${sonuc.analikMaxGun} gün`} v="uyari" />}
+                    {sonuc.beklemeSuresi > 0 && <DR l={`İlk ${sonuc.beklemeSuresi} gün bekleme`} d="ödenmez" v="uyari" />}
+                    <DR l="Ödenecek gün" d={`${sonuc.odenenGun} gün`} />
+                    {sonuc.ayaktaOdenenGun > 0 && <DR l="  ↳ Ayakta ödenecek" d={`${sonuc.ayaktaOdenenGun} gün`} />}
+                    {sonuc.yatarakOdenenGun > 0 && <DR l="  ↳ Yatarak ödenecek" d={`${sonuc.yatarakOdenenGun} gün`} />}
+                    <DR l="12 ay toplam prim günü" d={`${sonuc.toplamOnikiAyPrimGun} gün`}
+                      v={sonuc.doksan_gun_sartiSaglandi ? "basari" : "hata"} />
+                    <DR l="Baz dönem toplam kazanç" d={`${fmt(sonuc.bazDonemleriKazanc)} ₺`} />
+                    <DR l="Baz dönem toplam prim günü" d={`${sonuc.bazDonemleriGun} gün`} />
+                    <DR l="Günlük brüt ortalama" d={`${fmt(sonuc.gunlukOrtalamaBrut)} ₺`} />
+                    {sonuc.yuzElliTavanUygulandimi && <DR l="%150 tavan (normal maaş ort. × 1.5)" d={`${fmt(sonuc.yuzElliTavan)} ₺`} v="uyari" />}
+                    {sonuc.ikiKatTavanUygulandimi && <DR l="180 gün altı tavan (asgari × 2)" d={`${fmt(sonuc.ikiKatAsgariTavan)} ₺`} v="uyari" />}
+                    <DR l="Rapor başlangıç günlük asgari ücret" d={`${fmt(sonuc.raporBaslangicAsgariGunluk)} ₺`} />
+                    <DR l="Esas günlük kazanç"
+                      d={`${fmt(sonuc.gunlukKazancEsas)} ₺`}
+                      v={sonuc.asgariUcretUygulandimi ? "uyari" : "basari"}
+                      not={sonuc.asgariUcretUygulandimi ? "Asgari ücret uygulandı" : "Hesaplanan"} />
+                    <DR l="Ayakta günlük ödenek (×2/3)" d={`${fmt(sonuc.ayaktaGunluk)} ₺`} />
+                    <DR l="Yatarak günlük ödenek (×1/2)" d={`${fmt(sonuc.yatarakGunluk)} ₺`} />
+                    {sonuc.ayaktaToplamOdenek > 0 && <DR l="Ayakta toplam" d={`${fmt(sonuc.ayaktaToplamOdenek)} ₺`} />}
+                    {sonuc.yatarakToplamOdenek > 0 && <DR l="Yatarak toplam" d={`${fmt(sonuc.yatarakToplamOdenek)} ₺`} />}
+                    <DR l="TOPLAM ÖDENEK" d={`${fmt(sonuc.toplamOdenek)} ₺`} v="toplam" />
                   </tbody>
                 </table>
-
-                <details style={{ marginTop: 16 }}>
+                <details style={{ marginTop: 14 }}>
                   <summary style={{ fontSize: 12, color: "#64748b", cursor: "pointer", fontWeight: 600 }}>
-                    Hesaplama adımlarını göster
+                    Adım adım hesaplama
                   </summary>
-                  <ol style={{ margin: "10px 0 0", padding: "0 0 0 18px" }}>
+                  <ol style={{ margin: "8px 0 0", padding: "0 0 0 18px" }}>
                     {sonuc.adimlar.map((a, i) => (
                       <li key={i} style={{
-                        fontSize: 12, lineHeight: 1.6, marginBottom: 4,
+                        fontSize: 12, lineHeight: 1.6, marginBottom: 3,
                         color: a.includes("TOPLAM") ? "#c0392b" : "#374151",
                         fontWeight: a.includes("TOPLAM") ? 700 : 400,
                       }}>{a}</li>
@@ -510,89 +629,67 @@ export default function HesaplamaFormu() {
           </Kart>
 
           <div style={{
-            background: "#fffbeb", border: "1px solid #fde68a",
-            borderRadius: 8, padding: "10px 14px", fontSize: 11, color: "#92400e",
+            background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8,
+            padding: "10px 14px", fontSize: 11, color: "#92400e",
           }}>
-            <strong>⚠️ Not:</strong> Bu araç bilgi amaçlıdır. Resmi ödenek SGK e-Ödenek sistemi tarafından belirlenir.
-            5510/17 · Genelge 2021/13 · Asgari ücret tablosu 1950–2026.
+            <strong>⚠️ Not:</strong> Bilgi amaçlıdır. Resmi ödenek SGK e-Ödenek sistemi tarafından belirlenir.
+            Kaynak: 5510/17 · Genelge 2016/21 (2025/3 dahil).
           </div>
         </div>
       )}
 
       <footer style={{ textAlign: "center", fontSize: 11, color: "#94a3b8", marginTop: 20 }}>
-        5510 Sayılı Kanun § 17 · SGK Genelge 2021/13
+        5510 Sayılı Kanun § 17 · SGK Genelge 2016/21 (2025/3)
       </footer>
     </div>
   );
 }
 
-/* ── Küçük bileşenler ─────────────────────────────────────── */
-
+/* ── Alt bileşenler ─────────────────────────────────── */
 function Kart({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       background: "#fff", borderRadius: 12, padding: "16px 14px",
       boxShadow: "0 2px 8px rgba(0,0,0,0.06)", border: "1px solid #e2e8f0", marginBottom: 12,
-    }}>
-      {children}
-    </div>
+    }}>{children}</div>
   );
 }
-
-function BolumBaslik({ no, baslik }: { no: string; baslik: string }) {
+function Baslik({ no, metin }: { no: string; metin: string }) {
   return (
-    <h2 style={{
-      margin: "0 0 12px", fontSize: 13, fontWeight: 700, color: "#1a4b8c",
-      borderLeft: "3px solid #1a4b8c", paddingLeft: 9,
-    }}>
-      <span style={{ opacity: 0.55, marginRight: 5 }}>{no}.</span>{baslik}
+    <h2 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700, color: "#1a4b8c", borderLeft: "3px solid #1a4b8c", paddingLeft: 9 }}>
+      <span style={{ opacity: 0.5, marginRight: 5 }}>{no}.</span>{metin}
     </h2>
   );
 }
-
-function Label({ children }: { children: React.ReactNode }) {
-  return <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 }}>{children}</label>;
-}
-
-function InfoBox({ renk, children }: { renk: "mavi" | "sari" | "yesil" | "kirmizi" | "mor"; children: React.ReactNode }) {
-  const renkler = {
-    mavi: { bg: "#eff6ff", brd: "#bfdbfe", txt: "#1e40af" },
-    sari: { bg: "#fffbeb", brd: "#fde68a", txt: "#92400e" },
-    yesil: { bg: "#f0fdf4", brd: "#86efac", txt: "#166534" },
-    kirmizi: { bg: "#fef2f2", brd: "#fca5a5", txt: "#b91c1c" },
-    mor: { bg: "#faf5ff", brd: "#d8b4fe", txt: "#7e22ce" },
-  };
-  const { bg, brd, txt } = renkler[renk];
+function SeçBtn({ aktif, renk, onClick, children, kucuk }: {
+  aktif: boolean; renk: string; onClick: () => void; children: React.ReactNode; kucuk?: boolean;
+}) {
   return (
-    <div style={{
-      background: bg, border: `1px solid ${brd}`, borderRadius: 7,
-      padding: "8px 12px", fontSize: 12, color: txt, marginTop: 10, lineHeight: 1.5,
-    }}>
-      {children}
-    </div>
+    <button onClick={onClick} style={{
+      padding: kucuk ? "6px 10px" : "10px 6px", borderRadius: 8, cursor: "pointer",
+      fontSize: kucuk ? 12 : 13, fontWeight: aktif ? 700 : 500, lineHeight: 1.4,
+      background: aktif ? renk : "#f0f4fa",
+      color: aktif ? "#fff" : renk,
+      border: aktif ? `2px solid ${renk}` : "2px solid #d1dce8",
+    }}>{children}</button>
   );
 }
-
+function BilgiKutu({ renk, children }: { renk: "mavi"|"sari"|"yesil"|"kirmizi"|"mor"; children: React.ReactNode }) {
+  const r = { mavi:{bg:"#eff6ff",brd:"#bfdbfe",txt:"#1e40af"}, sari:{bg:"#fffbeb",brd:"#fde68a",txt:"#92400e"}, yesil:{bg:"#f0fdf4",brd:"#86efac",txt:"#166534"}, kirmizi:{bg:"#fef2f2",brd:"#fca5a5",txt:"#b91c1c"}, mor:{bg:"#faf5ff",brd:"#d8b4fe",txt:"#7e22ce"} };
+  const { bg, brd, txt } = r[renk];
+  return <div style={{ background: bg, border: `1px solid ${brd}`, borderRadius: 7, padding: "8px 12px", fontSize: 12, color: txt, marginTop: 10, lineHeight: 1.5 }}>{children}</div>;
+}
 function Chip({ renk, etiket, deger }: { renk: string; etiket: string; deger: string }) {
   return (
-    <div style={{
-      background: `${renk}12`, border: `1px solid ${renk}30`,
-      borderRadius: 7, padding: "5px 10px", fontSize: 11,
-    }}>
+    <div style={{ background: `${renk}12`, border: `1px solid ${renk}30`, borderRadius: 7, padding: "5px 10px", fontSize: 11 }}>
       <div style={{ color: "#64748b" }}>{etiket}</div>
       <div style={{ color: renk, fontWeight: 700, fontSize: 13 }}>{deger}</div>
     </div>
   );
 }
-
-function SonucKart({ icon, etiket, deger, renk, alt }: {
-  icon: string; etiket: string; deger: string; renk: string; alt?: string;
-}) {
+function SonKart({ icon, etiket, deger, renk, alt }: { icon: string; etiket: string; deger: string; renk: string; alt?: string }) {
   return (
-    <div style={{
-      background: "#fff", border: `2px solid ${renk}25`, borderRadius: 10,
-      padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-    }}>
+    <div style={{ background: "#fff", border: `2px solid ${renk}25`, borderRadius: 10, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
       <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
       <div style={{ fontSize: 11, color: "#64748b", marginBottom: 2 }}>{etiket}</div>
       <div style={{ fontSize: 15, fontWeight: 800, color: renk }}>{deger}</div>
@@ -600,47 +697,24 @@ function SonucKart({ icon, etiket, deger, renk, alt }: {
     </div>
   );
 }
-
-function DR({ etiket, deger, vurgu, not }: {
-  etiket: string; deger: string;
-  vurgu?: "uyari" | "basari" | "toplam";
-  not?: string;
-}) {
-  const bg = vurgu === "toplam" ? "#fef2f2" : vurgu === "uyari" ? "#fffbeb" : vurgu === "basari" ? "#f0fdf4" : "transparent";
-  const renk = vurgu === "toplam" ? "#c0392b" : vurgu === "uyari" ? "#d97706" : vurgu === "basari" ? "#1a7a4a" : "#374151";
+function DR({ l, d, v, not }: { l: string; d: string; v?: "uyari"|"basari"|"toplam"|"hata"; not?: string }) {
+  const bg = v==="toplam"?"#fef2f2":v==="uyari"?"#fffbeb":v==="basari"?"#f0fdf4":v==="hata"?"#fef2f2":"transparent";
+  const c = v==="toplam"?"#c0392b":v==="uyari"?"#d97706":v==="basari"?"#1a7a4a":v==="hata"?"#b91c1c":"#374151";
   return (
     <tr style={{ background: bg }}>
-      <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9", color: "#64748b", fontSize: 12 }}>
-        {etiket}
-        {not && <span style={{ marginLeft: 6, fontSize: 11, color: renk, fontWeight: 600 }}>[{not}]</span>}
+      <td style={{ padding: "5px 8px", borderBottom: "1px solid #f1f5f9", color: "#64748b", fontSize: 12 }}>
+        {l}{not && <span style={{ marginLeft: 6, fontSize: 11, color: c, fontWeight: 600 }}>[{not}]</span>}
       </td>
-      <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: vurgu ? 700 : 500, color: renk, fontSize: 12 }}>
-        {deger}
-      </td>
+      <td style={{ padding: "5px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: v?700:500, color: c, fontSize: 12 }}>{d}</td>
     </tr>
   );
 }
 
-/* ── Stil sabitleri ────────────────────────────────────────── */
-const inp: React.CSSProperties = {
-  width: "100%", border: "1.5px solid #d1dce8", borderRadius: 7,
-  padding: "9px 10px", fontSize: 14, color: "#1e293b", background: "#fff", outline: "none",
-  boxSizing: "border-box",
-};
-
-const tabloGiris: React.CSSProperties = {
-  width: "100%", border: "1.5px solid #d1dce8", borderRadius: 6,
-  padding: "7px 8px", fontSize: 13, color: "#1e293b", background: "#fff", outline: "none",
-  boxSizing: "border-box",
-};
-
-const kolBaslik: React.CSSProperties = {
-  fontSize: 11, fontWeight: 600, color: "#64748b",
-};
-
-function eylemBtn(renk: string): React.CSSProperties {
-  return {
-    background: renk, color: "#fff", border: "none", borderRadius: 7,
-    padding: "8px 13px", fontSize: 12, fontWeight: 600, cursor: "pointer",
-  };
+/* ── Stiller ──────────────────────────────────────────── */
+const inp: React.CSSProperties = { width: "100%", border: "1.5px solid #d1dce8", borderRadius: 7, padding: "9px 10px", fontSize: 14, color: "#1e293b", background: "#fff", outline: "none", boxSizing: "border-box" };
+const tabloInp: React.CSSProperties = { width: "100%", border: "1.5px solid #d1dce8", borderRadius: 6, padding: "7px 8px", fontSize: 13, color: "#1e293b", background: "#fff", outline: "none", boxSizing: "border-box" };
+const lb: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 };
+const th: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: "#64748b" };
+function eylemBtn(c: string): React.CSSProperties {
+  return { background: c, color: "#fff", border: "none", borderRadius: 7, padding: "8px 13px", fontSize: 12, fontWeight: 600, cursor: "pointer" };
 }
