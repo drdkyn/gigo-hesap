@@ -103,18 +103,18 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
   }
 
   // ── 3. Bekleme süresi ────────────────────────────────────────
-  // Hastalık: ilk 2 gün ödenmez (3. günden başlar)
-  // Meslek Hastalığı: ilk 2 gün ödenmez
-  // İş Kazası: ilk günden ödenir
-  // Analık: ilk günden ödenir
-  const beklemeSuresi =
-    input.raporTuru === "hastalik" || input.raporTuru === "meslekhastligi" ? 2 : 0;
+  // Hastalık: ilk 2 gün ödenmez (3. günden başlar) — 5510 m.18/1-b
+  // İş Kazası: ilk günden ödenir — 5510 m.18/1-a, Genelge 2016/21 §3.2
+  // Meslek Hastalığı: ilk günden ödenir — 5510 m.18/1-a, Genelge 2016/21 §3.2
+  // Analık: ilk günden ödenir — 5510 m.18/1-c
+  const beklemeSuresi = input.raporTuru === "hastalik" ? 2 : 0;
   const toplamOdenenGun = Math.max(0, kullanılanRaporGun - beklemeSuresi);
 
   if (beklemeSuresi > 0) {
-    adimlar.push(`Hastalık/MH: ilk ${beklemeSuresi} gün ödenmez → ${kullanılanRaporGun} - ${beklemeSuresi} = ${toplamOdenenGun} ödenecek gün`);
+    adimlar.push(`Hastalık: ilk ${beklemeSuresi} gün ödenmez (5510 m.18/1-b) → ${kullanılanRaporGun} - ${beklemeSuresi} = ${toplamOdenenGun} ödenecek gün`);
   } else {
-    adimlar.push(`${input.raporTuru === "iskazasi" ? "İş kazası" : "Analık"}: ilk günden ödeme → ${toplamOdenenGun} ödenecek gün`);
+    const turAdi = { iskazasi: "İş kazası", meslekhastligi: "Meslek hastalığı", analik: "Analık", hastalik: "Hastalık" }[input.raporTuru];
+    adimlar.push(`${turAdi}: ilk günden ödeme (5510 m.18/1-a) → ${toplamOdenenGun} ödenecek gün`);
   }
 
   // ── 4. Karma tedavide bekleme günü dağılımı ─────────────────

@@ -238,7 +238,7 @@ export default function HesaplamaFormu() {
             SGK Geçici İş Göremezlik<br />Ödeneği Hesaplama
           </h1>
           <p style={{ margin: "4px 0 0", fontSize: 11, opacity: 0.75 }}>
-            5510/17 · Genelge 2016/21 (2025/3 dahil)
+            SGK Geçici İş Göremezlik Ödeneği Hesaplama Aracı
           </p>
         </div>
       </header>
@@ -257,7 +257,7 @@ export default function HesaplamaFormu() {
         <BilgiKutu renk="mavi">
           {raporTuru === "hastalik" && <>Hastalık: son <b>12 ayın tamamı</b> baz · ilk 2 gün ödenmez · 90 gün prim şartı</>}
           {raporTuru === "iskazasi" && <>İş Kazası: son <b>12 ayın tamamı</b> baz · ilk günden ödeme · 90 gün şartı aranmaz</>}
-          {raporTuru === "meslekhastligi" && <>Meslek Hastalığı: son <b>12 ayın tamamı</b> baz · ilk 2 gün ödenmez</>}
+          {raporTuru === "meslekhastligi" && <>Meslek Hastalığı: son <b>12 ayın tamamı</b> baz · <b>ilk günden ödeme</b> · 90 gün şartı aranmaz</>}
           {raporTuru === "analik" && <>Analık: son <b>12 ayın tamamı</b> · ilk günden ödeme · max <b>24 hafta / 168 gün</b></>}
         </BilgiKutu>
       </Kart>
@@ -680,14 +680,13 @@ export default function HesaplamaFormu() {
             background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8,
             padding: "10px 14px", fontSize: 11, color: "#92400e",
           }}>
-            <strong>⚠️ Not:</strong> Bilgi amaçlıdır. Resmi ödenek SGK e-Ödenek sistemi tarafından belirlenir.
-            Kaynak: 5510/17 · Genelge 2016/21 (2025/3 dahil).
+            <strong>⚠️ Not:</strong> Bu araç bilgi amaçlıdır. Resmi ödenek tutarı SGK e-Ödenek sistemi tarafından belirlenir.
           </div>
         </div>
       )}
 
-      <footer style={{ textAlign: "center", fontSize: 11, color: "#94a3b8", marginTop: 20 }}>
-        5510 Sayılı Kanun § 17 · SGK Genelge 2016/21 (2025/3)
+      <footer style={{ textAlign: "center", fontSize: 11, color: "#94a3b8", marginTop: 20, paddingBottom: 8 }}>
+        © 2026 drdnctgl
       </footer>
     </div>
   );
