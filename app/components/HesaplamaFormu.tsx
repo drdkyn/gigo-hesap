@@ -388,14 +388,14 @@ export default function HesaplamaFormu() {
                     {tarihMod === "gun" ? (
                       <input
                         type="number" min={1}
-                        value={s.gun ?? ""}
+                        value={s.gun ?? 0}
                         onChange={(e) => {
                           const v = e.target.value;
                           updateSatir(s.id, "gun", v === "" ? null : Math.max(1, parseInt(v) || 1));
                         }}
                         className="gun-input"
                         style={{ ...inp, width: 72, fontSize: 13, fontWeight: 700, textAlign: "center", padding: "4px 5px", flexShrink: 0 }}
-                        placeholder="Gün" />
+                        placeholder="0" />
                     ) : (
                       <div style={{ display: "flex", gap: 4, flex: 1, minWidth: 0, alignItems: "center" }}>
                         <input type="date" value={s.baslangic}
