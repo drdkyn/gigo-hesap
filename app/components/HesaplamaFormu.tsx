@@ -29,13 +29,14 @@ function gunFarki(a: string, b: string) {
   return Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000) + 1);
 }
 
-/* ── Yeni veri yapısı: rapor satırı ─────────────────── */
+/* ── Veri yapıları ───────────────────────────────────── */
+interface AyKazancSatir { id: number; ay: string; kazanc: number; primGunu: number; }
+let _aysatirId = 100;
+
 interface RaporSatir {
   id: number;
   tur: "ayakta" | "yatarak";
-  // Gün modu
   gun: number | null;
-  // Tarih modu
   baslangic: string;
   bitis: string;
 }
@@ -103,11 +104,11 @@ export default function HesaplamaFormu() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [satirlar, tarihMod]);
 
-  // 3. Kazanç
+  // 3. Kazanç — her ay birden fazla satır olabilir
   const [kazancMod, setKazancMod] = useState<"manuel" | "asgari">("manuel");
   const ayListesi = getOnceki12Ay(raporBaslangic);
-  const [ayKazanclar, setAyKazanclar] = useState<AyKazanc[]>(() =>
-    ayListesi.map((ay) => ({ ay, kazanc: 0, primGunu: 30 }))
+  const [ayKazancSatirlar, setAyKazancSatirlar] = useState<AyKazancSatir[]>(() =>
+    ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 30 }))
   );
 
   const [emsalAktif, setEmsalAktif] = useState(false);
@@ -136,21 +137,54 @@ export default function HesaplamaFormu() {
   /* Kazanç */
   const handleBaslangicChange = (val: string) => {
     const yeniAylar = getOnceki12Ay(val);
-    if (kazancMod === "asgari")
-      setAyKazanclar(yeniAylar.map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 })));
-    else
-      setAyKazanclar((prev) => yeniAylar.map((ay) => prev.find((p) => p.ay === ay) ?? { ay, kazanc: 0, primGunu: 30 }));
+    if (kazancMod === "asgari") {
+      setAyKazancSatirlar(yeniAylar.map((ay) => ({ id: _aysatirId++, ay, kazanc: getAsgariAy(ay), primGunu: 30 })));
+    } else {
+      // Mevcut ayların ilk satırını koru, yeni aylar için boş ekle
+      setAyKazancSatirlar((prev) => {
+        const result: AyKazancSatir[] = [];
+        for (const ay of yeniAylar) {
+          const mevcutlar = prev.filter(s => s.ay === ay);
+          if (mevcutlar.length > 0) result.push(...mevcutlar);
+          else result.push({ id: _aysatirId++, ay, kazanc: 0, primGunu: 30 });
+        }
+        return result;
+      });
+    }
   };
   const doldurAsgariUcret = useCallback(() => {
     const bazTarih = tarihMod === "gun" ? bugun : raporBaslangic;
     const aylar = getOnceki12Ay(bazTarih);
-    setAyKazanclar(aylar.map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 })));
+    setAyKazancSatirlar(aylar.map((ay) => ({ id: _aysatirId++, ay, kazanc: getAsgariAy(ay), primGunu: 30 })));
     setKazancMod("asgari"); setSonuc(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raporBaslangic, tarihMod]);
   const manueleMod = () => { setKazancMod("manuel"); setSonuc(null); };
-  const updateAy = (idx: number, field: "kazanc" | "primGunu", val: string) => {
-    setAyKazanclar((prev) => { const k = [...prev]; k[idx] = { ...k[idx], [field]: field === "kazanc" ? parseFloat(val) || 0 : parseInt(val) || 0 }; return k; });
+  const updateAySatir = (id: number, field: "kazanc" | "primGunu", val: string) => {
+    setAyKazancSatirlar((prev) => prev.map(s => s.id === id
+      ? { ...s, [field]: field === "kazanc" ? parseFloat(val) || 0 : parseInt(val) || 0 }
+      : s));
+    setSonuc(null);
+  };
+  const addAySatir = (ay: string) => {
+    setAyKazancSatirlar((prev) => {
+      // O ayın son satırından sonra ekle
+      const sonIdx = prev.map((s, i) => s.ay === ay ? i : -1).filter(i => i >= 0).pop() ?? prev.length - 1;
+      const yeni = [...prev];
+      yeni.splice(sonIdx + 1, 0, { id: _aysatirId++, ay, kazanc: 0, primGunu: 0 });
+      return yeni;
+    });
+    setSonuc(null);
+  };
+  const removeAySatir = (id: number) => {
+    setAyKazancSatirlar((prev) => {
+      const satir = prev.find(s => s.id === id);
+      if (!satir) return prev;
+      // O aya ait en az 1 satır kalmalı
+      const ayinSatirlari = prev.filter(s => s.ay === satir.ay);
+      if (ayinSatirlari.length <= 1) return prev;
+      return prev.filter(s => s.id !== id);
+    });
     setSonuc(null);
   };
 
@@ -177,7 +211,20 @@ export default function HesaplamaFormu() {
 
     const kullanilacakAylar: AyKazanc[] = tarihMod === "gun"
       ? getOnceki12Ay(bugun).map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 }))
-      : ayKazanclar;
+      : (() => {
+          // Aynı aya ait satırları topla
+          const ayMap = new Map<string, AyKazanc>();
+          for (const s of ayKazancSatirlar) {
+            const mevcut = ayMap.get(s.ay);
+            if (mevcut) {
+              mevcut.kazanc += s.kazanc;
+              mevcut.primGunu += s.primGunu;
+            } else {
+              ayMap.set(s.ay, { ay: s.ay, kazanc: s.kazanc, primGunu: s.primGunu });
+            }
+          }
+          return getOnceki12Ay(raporBaslangic).map(ay => ayMap.get(ay) ?? { ay, kazanc: 0, primGunu: 0 });
+        })();
 
     if (tarihMod === "tarih" && kullanilacakAylar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0) === 0) {
       setHata("12 ay toplam prim günü sıfır olamaz."); return;
@@ -223,7 +270,7 @@ export default function HesaplamaFormu() {
 
   const handleTemizle = () => {
     setSonuc(null); setHata(null); setKazancMod("manuel");
-    setAyKazanclar(ayListesi.map((ay) => ({ ay, kazanc: 0, primGunu: 30 })));
+    setAyKazancSatirlar(ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 30 })));
     setSatirlar([
       { id: 1, tur: "ayakta", gun: null, baslangic: bugun, bitis: bugun },
       { id: 2, tur: "ayakta", gun: null, baslangic: bugun, bitis: bugun },
@@ -232,9 +279,9 @@ export default function HesaplamaFormu() {
 
   /* Anlık özetler */
   const toplamRaporGun = raporBaslangic && raporBitis ? gunFarki(raporBaslangic, raporBitis) : 0;
-  const onikiAyGun = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
-  const bazKazanc = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.kazanc, 0);
-  const bazGun = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
+  const onikiAyGun = ayKazancSatirlar.reduce((s, a) => s + a.primGunu, 0);
+  const bazKazanc = ayKazancSatirlar.reduce((s, a) => s + a.kazanc, 0);
+  const bazGun = onikiAyGun;
   const canliOrt = bazGun > 0 ? bazKazanc / bazGun : 0;
   const bitisAsgari = raporBaslangic ? getGunlukAsgariUcret(new Date(raporBaslangic)) : 0;
   const isKazaMH = raporTuru === "iskazasi" || raporTuru === "meslekhastligi";
@@ -440,8 +487,8 @@ export default function HesaplamaFormu() {
                 <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "10px 12px" }}>
                   <div style={{ fontWeight: 700, color: "var(--green)", marginBottom: 6, fontSize: 12 }}>✓ Güncel asgari ücrete göre dolduruldu (prim gün: 30)</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    {ayKazanclar.map((a) => (
-                      <div key={a.ay} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#374151" }}>
+                    {ayKazancSatirlar.map((a) => (
+                      <div key={a.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#374151" }}>
                         <span>{ayEtiket(a.ay)}</span>
                         <span style={{ fontWeight: 600 }}>{fmt(a.kazanc)} ₺ / {a.primGunu} gün</span>
                       </div>
@@ -453,31 +500,69 @@ export default function HesaplamaFormu() {
                   </div>
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 5, padding: "0 2px" }}>
-                    <span style={th}>Ay</span><span style={th}>Brüt Kazanç (₺)</span><span style={th}>Prim Gün</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                  {/* Başlık */}
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr 20px", gap: 4, padding: "0 2px" }}>
+                    <span style={th}>Ay</span><span style={th}>Brüt Kazanç (₺)</span><span style={th}>Prim Gün</span><span />
                   </div>
-                  {ayKazanclar.map((a, idx) => {
-                    const ayAsgari = getAsgariAy(a.ay);
-                    const altSinir = a.kazanc > 0 && a.kazanc < ayAsgari;
-                    return (
-                      <div key={a.ay} style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 5, background: idx % 2 === 0 ? "#fff" : "#f9fbff", borderRadius: 6, padding: "3px 2px", border: "1px solid #f0f4fa" }}>
-                        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", paddingLeft: 2 }}>
-                          <span style={{ fontSize: 11, fontWeight: 600 }}>{ayEtiket(a.ay)}</span>
-                          <span style={{ fontSize: 9, color: "var(--muted)" }}>Asg: {fmt(ayAsgari)} ₺</span>
-                        </div>
-                        <input type="number" min={0} step={0.01} value={a.kazanc || ""} placeholder="0,00"
-                          onChange={(e) => updateAy(idx, "kazanc", e.target.value)}
-                          style={{ ...tabloInp, borderColor: altSinir ? "#fbbf24" : "var(--border)", background: altSinir ? "#fffbeb" : "#fff" }} />
-                        <input type="number" min={0} max={30} value={a.primGunu || ""} placeholder="30"
-                          onChange={(e) => updateAy(idx, "primGunu", e.target.value)} style={tabloInp} />
-                      </div>
-                    );
-                  })}
-                  <div style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 5, background: "#e8f0fa", borderRadius: 6, padding: "6px 2px", fontWeight: 700, fontSize: 12 }}>
+
+                  {/* Ayları grupla ve render et */}
+                  {(() => {
+                    const aylar = getOnceki12Ay(raporBaslangic);
+                    return aylar.map((ay, ayIdx) => {
+                      const ayAsgari = getAsgariAy(ay);
+                      const satirlar = ayKazancSatirlar.filter(s => s.ay === ay);
+                      return satirlar.map((s, sIdx) => {
+                        const altSinir = s.kazanc > 0 && s.kazanc < ayAsgari && sIdx === 0;
+                        return (
+                          <div key={s.id} style={{
+                            display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr 20px", gap: 4,
+                            background: ayIdx % 2 === 0 ? "#fff" : "#f9fbff",
+                            borderRadius: sIdx === 0 ? "6px 6px 0 0" : sIdx === satirlar.length - 1 ? "0 0 6px 6px" : 0,
+                            padding: "3px 2px",
+                            border: "1px solid #f0f4fa",
+                            borderTop: sIdx > 0 ? "1px dashed #e2e8f0" : "1px solid #f0f4fa",
+                          }}>
+                            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", paddingLeft: 2 }}>
+                              {sIdx === 0 ? (
+                                <>
+                                  <span style={{ fontSize: 11, fontWeight: 600 }}>{ayEtiket(ay)}</span>
+                                  <span style={{ fontSize: 9, color: "var(--muted)" }}>Asg: {fmt(ayAsgari)} ₺</span>
+                                </>
+                              ) : (
+                                <span style={{ fontSize: 9, color: "var(--muted)", paddingLeft: 6 }}>↳ ek satır</span>
+                              )}
+                            </div>
+                            <input type="number" min={0} step={0.01} value={s.kazanc || ""} placeholder="0,00"
+                              onChange={(e) => updateAySatir(s.id, "kazanc", e.target.value)}
+                              style={{ ...tabloInp, borderColor: altSinir ? "#fbbf24" : "var(--border)", background: altSinir ? "#fffbeb" : "#fff" }} />
+                            <input type="number" min={0} max={30} value={s.primGunu || ""} placeholder="0"
+                              onChange={(e) => updateAySatir(s.id, "primGunu", e.target.value)} style={tabloInp} />
+                            {/* Sil — sadece ek satırlarda */}
+                            {satirlar.length > 1 ? (
+                              <button onClick={() => removeAySatir(s.id)} style={{
+                                background: "none", border: "none", color: "#b91c1c",
+                                fontSize: 12, cursor: "pointer", padding: "0 2px", lineHeight: 1,
+                              }}>✕</button>
+                            ) : (
+                              /* + satır ekle butonu — her ayın tek satırında */
+                              <button onClick={() => addAySatir(ay)} title="Bu aya satır ekle" style={{
+                                background: "none", border: "none", color: "var(--blue)",
+                                fontSize: 14, cursor: "pointer", padding: "0 2px", lineHeight: 1, fontWeight: 700,
+                              }}>+</button>
+                            )}
+                          </div>
+                        );
+                      });
+                    });
+                  })()}
+
+                  {/* Toplam */}
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr 20px", gap: 4, background: "#e8f0fa", borderRadius: 6, padding: "6px 2px", fontWeight: 700, fontSize: 12 }}>
                     <span style={{ color: "var(--blue)", paddingLeft: 2, display: "flex", alignItems: "center" }}>Toplam</span>
                     <span style={{ color: "var(--blue)" }}>{fmt(bazKazanc)} ₺</span>
                     <span style={{ color: "var(--blue)" }}>{bazGun}</span>
+                    <span />
                   </div>
                 </div>
               )}
@@ -515,9 +600,9 @@ export default function HesaplamaFormu() {
                 <div style={{ marginTop: 10 }}>
                   <p style={{ margin: "0 0 6px", fontSize: 11, color: "var(--muted)" }}>Her ay için normal maaş (prim/ikramiye hariç) brüt:</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    {ayKazanclar.slice(0, 12).map((a, idx) => (
-                      <div key={a.ay} style={{ display: "grid", gridTemplateColumns: "2fr 2fr", gap: 8, alignItems: "center" }}>
-                        <span style={{ fontSize: 11, color: "#475569" }}>{ayEtiket(a.ay)}</span>
+                    {getOnceki12Ay(raporBaslangic).map((ay, idx) => (
+                      <div key={ay} style={{ display: "grid", gridTemplateColumns: "2fr 2fr", gap: 8, alignItems: "center" }}>
+                        <span style={{ fontSize: 11, color: "#475569" }}>{ayEtiket(ay)}</span>
                         <input type="number" min={0} value={normalMaaslar[idx] || ""} placeholder="Normal maaş"
                           onChange={(e) => { const k = [...normalMaaslar]; k[idx] = parseFloat(e.target.value) || 0; setNormalMaaslar(k); }} style={tabloInp} />
                       </div>
