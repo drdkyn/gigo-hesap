@@ -236,6 +236,16 @@ export default function AnalikHesap({ onChange }: Props) {
 
           <div>
             <label style={lb}>Çalışma Durumu</label>
+            {calisir === null && raporTarihi && kacincuHafta && (
+              <div style={{
+                background: "#fef3c7", border: "1px solid #f59e0b",
+                borderRadius: 6, padding: "4px 10px", fontSize: 11,
+                color: "#92400e", marginBottom: 5, fontWeight: 600,
+                display: "inline-flex", alignItems: "center", gap: 5,
+              }}>
+                ⚠️ Lütfen çalışma durumunu seçiniz
+              </div>
+            )}
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={() => setCalisir(false)} style={{
                 ...togStyle(calisir === false, "#7c3aed"),
