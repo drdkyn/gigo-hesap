@@ -257,7 +257,9 @@ export default function HesaplamaFormu() {
       hesapBaslangic = analikSonuc.oncesiBaslangic || analikSonuc.sonrasiBaslangic;
       hesapBitis = analikSonuc.sonrasiBitis || analikSonuc.oncesiBitis;
       analikOncesiGunHesap = Math.min(analikSonuc.oncesiGun, 56);
-      analikSonrasiGunHesap = Math.min(analikSonuc.sonrasiGun, analikSonuc.aktarilanGun === 0 ? 168 : 112);
+      // Sonrası: 112 + aktarılan + erken, toplam 168 aşılamaz
+      const sonrasiMaxHesap = Math.min(112 + analikSonuc.aktarilanGun + analikSonuc.erkenDogumEkGun, 168);
+      analikSonrasiGunHesap = Math.min(analikSonuc.sonrasiGun, sonrasiMaxHesap);
     } else {
       // Normal karma hesap
       if (tedaviTuru === "karma") {
