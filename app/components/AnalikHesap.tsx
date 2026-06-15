@@ -119,9 +119,19 @@ export default function AnalikHesap({ onChange }: Props) {
     const oBit = dogumTarihi ? addDays(dogumTarihi, -1) : "";
 
     if (calisir && istirahStart > raporTarihi && dogumTarihi) {
-      const rT = new Date(raporTarihi);
-      const iT = new Date(istirahStart);
-      aktGun = Math.max(0, Math.round((iT.getTime() - rT.getTime()) / 86400000));
+      if (dogumTarihi <= istirahStart) {
+        // Doğum istirahat başlamadan olmuş → tüm planlanan öncesi (raporTarihi→istirahStart) aktarılır
+        const rT = new Date(raporTarihi);
+        const iT = new Date(istirahStart);
+        aktGun = Math.max(0, Math.round((iT.getTime() - rT.getTime()) / 86400000));
+      } else {
+        const rT = new Date(raporTarihi);
+        const iT = new Date(istirahStart);
+        aktGun = Math.max(0, Math.round((iT.getTime() - rT.getTime()) / 86400000));
+      }
+    } else if (!calisir && dogumTarihi && dogumTarihi <= istirahStart) {
+      // Aktarma yok ama doğum rapor tarihinde veya önce — aktarılan 0
+      aktGun = 0;
     } else {
       aktGun = 0;
     }
@@ -233,18 +243,16 @@ export default function AnalikHesap({ onChange }: Props) {
   };
 
   // ── Kontroller ────────────────────────────────────────
+  // Doğum istirahat başlangıcından önce olabilir (erken/acil doğum)
+  // Bu durumda öncesi = 0 gün, sonrası normal hesaplanır
   const oncesiGun = oncesiBaslangic && oncesiBitis && oncesiBitis >= oncesiBaslangic
     ? gunFarki(oncesiBaslangic, oncesiBitis) : 0;
   const sonrasiGun = sonrasiBaslangic && sonrasiBitis ? gunFarki(sonrasiBaslangic, sonrasiBitis) : 0;
-  // Sonrası max: 112 + aktarılan + erken, ama toplam 168'i geçemez
   const sonrasiMax = Math.min(112 + aktarilanGun + erkenGun, 168);
   const oncesiAsim = oncesiGun > 56;
-  // Sonrası aşımını sadece kullanıcı manuel değiştirince göster —
-  // otomatik hesaplama zaten kesilecek, ayrı bilgi satırı var
-  const sonrasiAsim = false; // Uyarı doğum sonrası başlıkta sonrasiGun ile gösterilir
+  const sonrasiAsim = false;
   const toplamAsim = (oncesiGun + sonrasiGun) > 168;
-  const dogumOncesiHata = oncesiRaporVar && dogumTarihi && oncesiBaslangic && dogumTarihi <= oncesiBaslangic;
-  // Tahmini doğum tarihi
+  const dogumOncesiErken = oncesiRaporVar && dogumTarihi && oncesiBaslangic && dogumTarihi <= oncesiBaslangic;
   const tahminiDogum = raporTarihi && kacincuHafta ? addWeeks(raporTarihi, 40 - kacincuHafta) : "";
 
   // ── Render ────────────────────────────────────────────
@@ -338,14 +346,17 @@ export default function AnalikHesap({ onChange }: Props) {
 
       {/* ── Dönem özeti ve satırlar ── */}
       {oncesiRaporVar && oncesiBaslangic && oncesiBitis && (
-        <DonemKart renk="#7c3aed" baslik={`📋 Doğum Öncesi Dönem — ${fmt_tarih(oncesiBaslangic)} → ${fmt_tarih(oncesiBitis)} (${oncesiGun} gün)`}>
-          {dogumOncesiHata && (
-            <UyariKutu>❌ Doğum tarihi ({fmt_tarih(dogumTarihi)}), istirahat başlangıcından ({fmt_tarih(oncesiBaslangic)}) önce veya aynı gün olamaz. Lütfen tarihleri kontrol edin.</UyariKutu>
+        <DonemKart renk="#7c3aed" baslik={`📋 Doğum Öncesi Dönem — ${fmt_tarih(oncesiBaslangic)} → ${dogumOncesiErken ? fmt_tarih(dogumTarihi) : fmt_tarih(oncesiBitis)} (${oncesiGun} gün)`}>
+          {dogumOncesiErken && (
+            <InfoSatir renk="#b45309">
+              ℹ️ Doğum ({fmt_tarih(dogumTarihi)}), istirahat başlangıcından ({fmt_tarih(oncesiBaslangic)}) önce gerçekleşmiş.
+              Doğum öncesi rapor süresi <b>0 gün</b> — tüm aktarılan günler doğum sonrasına eklenmiştir.
+            </InfoSatir>
           )}
-          {oncesiAsim && !dogumOncesiHata && (
+          {oncesiAsim && !dogumOncesiErken && (
             <UyariKutu>⚠️ Doğum öncesi max <b>56 gün</b> olabilir. Hesaplama 56 gün üzerinden yapılır.</UyariKutu>
           )}
-          {!dogumOncesiHata && (
+          {!dogumOncesiErken && (
             <SatirListesi
               satirlar={oncesiSatirlar}
               donemBas={oncesiBaslangic}
@@ -358,7 +369,7 @@ export default function AnalikHesap({ onChange }: Props) {
         </DonemKart>
       )}
 
-      {sonrasiBaslangic && sonrasiBitis && !dogumOncesiHata && (
+      {sonrasiBaslangic && sonrasiBitis && (
         <DonemKart renk="#b45309" baslik={`📋 Doğum Sonrası Dönem — ${fmt_tarih(sonrasiBaslangic)} → ${fmt_tarih(sonrasiBitis)} (${Math.min(sonrasiGun, sonrasiMax)} gün)`}>
           {sonrasiGun > sonrasiMax && (
             <InfoSatir renk="#b45309" style={{ marginBottom: 4 }}>
@@ -384,8 +395,7 @@ export default function AnalikHesap({ onChange }: Props) {
         </DonemKart>
       )}
 
-      {/* Genel uyarılar */}
-      {toplamAsim && !oncesiAsim && !dogumOncesiHata && (
+      {toplamAsim && !oncesiAsim && !dogumOncesiErken && (
         <InfoSatir renk="#b45309">ℹ️ Toplam analık süresi 168 günü aşıyor. Hesaplama 168 gün üzerinden yapılacaktır.</InfoSatir>
       )}
 
