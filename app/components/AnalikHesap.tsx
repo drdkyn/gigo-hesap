@@ -371,7 +371,7 @@ export default function AnalikHesap({ onChange }: Props) {
       </DonemKart>
 
       {/* ── Dönem özeti ve satırlar ── */}
-      {oncesiRaporVar && oncesiBaslangic && oncesiBitis && oncesiGun > 0 && (
+      {oncesiRaporVar && oncesiBaslangic && (
         <DonemKart renk="#7c3aed" baslik={`📋 Doğum Öncesi Dönem — ${fmt_tarih(oncesiBaslangic)} → ${dogumOncesiErken ? fmt_tarih(dogumTarihi) : fmt_tarih(oncesiBitis)} (${oncesiGun} gün)`}>
           {dogumOncesiErken && (
             <InfoSatir renk="#b45309">
