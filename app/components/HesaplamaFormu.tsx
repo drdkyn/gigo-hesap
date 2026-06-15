@@ -253,13 +253,16 @@ export default function HesaplamaFormu() {
     if (raporTuru === "analik" && tarihMod === "tarih" && analikSonuc) {
       // AnalikHesap bileşeninden gelen tüm satırları donemTip ile işaretle
       const tumSatirlar = [
-        ...analikSonuc.oncesiSatirlar.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak", donemTip: "oncesi" as const })),
-        ...analikSonuc.sonrasiSatirlar.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak", donemTip: "sonrasi" as const })),
+        ...analikSonuc.oncesiSatirlar.map((s, i) => ({ id: 1 + i, baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak", donemTip: "oncesi" as const, gun: null })),
+        ...analikSonuc.sonrasiSatirlar.map((s, i) => ({ id: 100 + i, baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak", donemTip: "sonrasi" as const, gun: null })),
       ].filter(s => s.baslangic && s.bitis);
 
       if (tumSatirlar.length === 0) {
         setHata("Analık raporu tarih bilgileri eksik."); return;
       }
+      
+      // State'e ekle (analikOncesiGun doğru hesaplanması için)
+      setSatirlar(tumSatirlar);
 
       const turlerSet = new Set(tumSatirlar.map(s => s.tur));
       if (turlerSet.size > 1) {
@@ -803,7 +806,7 @@ export default function HesaplamaFormu() {
                 <div className="sonuc-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <SonKart icon="📅" etiket="Rapor Günü" deger={`${sonuc.toplamRaporGun} gün`} renk="var(--blue)" />
                   {raporTuru === "analik" ? (
-                    <SonKart icon="💵" etiket="Ödenecek Tutar" deger={`${fmt(sonuc.toplamOdenek)} ₺`} renk="var(--red)" />
+                    <SonKart icon="💵" etiket={raporTuru === "analik" ? "Analık Ödeneği" : "Ödenecek Tutar"} deger={`${fmt(sonuc.toplamOdenek)} ₺`} renk="var(--red)" />
                   ) : (
                     <SonKart icon="✅" etiket="Ödenecek Gün" deger={`${sonuc.odenenGun} gün`} renk="var(--green)" />
                   )}
