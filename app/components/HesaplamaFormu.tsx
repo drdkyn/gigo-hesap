@@ -340,6 +340,9 @@ export default function HesaplamaFormu() {
   const canliOrt = bazGun > 0 ? bazKazanc / bazGun : 0;
 
   // Analık dönem kontrolleri
+  // Analık tarih modu kontrol
+  const analikTarihModu = raporTuru === "analik" && tarihMod === "tarih";
+  
   // Analık gün hesabı
   // Tarih modunda: AnalikSonuc'tan al (doğum öncesi/sonrası ayrı hesaplanmış)
   // Normal modda: satirlar'dan hesapla
@@ -367,8 +370,6 @@ export default function HesaplamaFormu() {
         return sum;
       }, 0);
   }
-  // Analık + tarih modunda AnalikHesap bileşeni kendi uyarılarını gösterir
-  const analikTarihModu = raporTuru === "analik" && tarihMod === "tarih";
   const analikOncesiAsim = !analikTarihModu && raporTuru === "analik" && analikOncesiGun > 56;
   const analikSonrasiMaxGun = analikOncesiGun === 0 ? 168 : 112;
   const analikSonrasiAsim = !analikTarihModu && raporTuru === "analik" && analikSonrasiGun > analikSonrasiMaxGun;
