@@ -36,6 +36,7 @@ let _aysatirId = 100;
 interface RaporSatir {
   id: number;
   tur: "ayakta" | "yatarak";
+  donemTip: "oncesi" | "sonrasi" | null;
   gun: number | null;
   baslangic: string;
   bitis: string;
@@ -43,7 +44,7 @@ interface RaporSatir {
 
 let satirSayac = 3;
 function yeniSatir(tur: "ayakta" | "yatarak" = "ayakta"): RaporSatir {
-  return { id: satirSayac++, tur, gun: null, baslangic: "", bitis: "" };
+  return { id: satirSayac++, tur, donemTip: null, gun: null, baslangic: "", bitis: "" };
 }
 
 export default function HesaplamaFormu() {
@@ -55,8 +56,8 @@ export default function HesaplamaFormu() {
   // 2. Rapor süresi ve şekli
   const [tarihMod, setTarihMod] = useState<"gun" | "tarih">("gun");
   const [satirlar, setSatirlar] = useState<RaporSatir[]>([
-    { id: 1, tur: "ayakta", gun: null, baslangic: "", bitis: "" },
-    { id: 2, tur: "ayakta", gun: null, baslangic: "", bitis: "" },
+    { id: 1, tur: "ayakta", donemTip: null, gun: null, baslangic: "", bitis: "" },
+    { id: 2, tur: "ayakta", donemTip: null, gun: null, baslangic: "", bitis: "" },
   ]);
 
   // Hesaplama için türetilen değerler
@@ -255,6 +256,8 @@ export default function HesaplamaFormu() {
         karmaDonemleri: karmaDon,
         yatarakGun: tedaviTuru === "karma" && tarihMod === "gun" ? yatarakGunSayisi : undefined,
         ayKazanclar: kullanilacakAylar,
+        analikOncesiGun: raporTuru === "analik" ? analikOncesiGun : undefined,
+        analikSonrasiGun: raporTuru === "analik" ? analikSonrasiGun : undefined,
         emsalKazanc: emsalAktif ? emsalKazanc : undefined,
         emsalPrimGunu: emsalAktif ? emsalPrimGunu : undefined,
         normalMaasKazanc: normalMaasAktif ? normalMaaslar : undefined,
@@ -269,8 +272,8 @@ export default function HesaplamaFormu() {
     setSonuc(null); setHata(null); setKazancMod("manuel");
     setAyKazancSatirlar(ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 })));
     setSatirlar([
-      { id: 1, tur: "ayakta", gun: null, baslangic: "", bitis: "" },
-      { id: 2, tur: "ayakta", gun: null, baslangic: "", bitis: "" },
+      { id: 1, tur: "ayakta", donemTip: null, gun: null, baslangic: "", bitis: "" },
+      { id: 2, tur: "ayakta", donemTip: null, gun: null, baslangic: "", bitis: "" },
     ]);
   };
 
@@ -280,6 +283,24 @@ export default function HesaplamaFormu() {
   const bazKazanc = ayKazancSatirlar.reduce((s, a) => s + a.kazanc, 0);
   const bazGun = onikiAyGun;
   const canliOrt = bazGun > 0 ? bazKazanc / bazGun : 0;
+
+  // Analık dönem kontrolleri
+  const analikOncesiGun = satirlar
+    .filter(s => s.donemTip === "oncesi")
+    .reduce((sum, s) => {
+      if (tarihMod === "gun") return sum + (s.gun ?? 0);
+      if (s.baslangic && s.bitis) return sum + gunFarki(s.baslangic, s.bitis);
+      return sum;
+    }, 0);
+  const analikSonrasiGun = satirlar
+    .filter(s => s.donemTip === "sonrasi")
+    .reduce((sum, s) => {
+      if (tarihMod === "gun") return sum + (s.gun ?? 0);
+      if (s.baslangic && s.bitis) return sum + gunFarki(s.baslangic, s.bitis);
+      return sum;
+    }, 0);
+  const analikOncesiAsim = raporTuru === "analik" && analikOncesiGun > 56;
+  const analikSonrasiAsim = raporTuru === "analik" && analikSonrasiGun > 112;
   const bitisAsgari = raporBaslangic ? getGunlukAsgariUcret(new Date(raporBaslangic)) : 0;
   const isKazaMH = raporTuru === "iskazasi" || raporTuru === "meslekhastligi";
 
@@ -421,6 +442,20 @@ export default function HesaplamaFormu() {
                         onClick={() => updateSatir(s.id, "tur", "yatarak")} kucuk>Yatarak</TogBtn>
                     </div>
 
+                    {/* Analık: Doğum öncesi / sonrası */}
+                    {raporTuru === "analik" && (
+                      <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                        <TogBtn aktif={s.donemTip === "oncesi"} renk="#7c3aed"
+                          onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "oncesi" ? null : "oncesi")} kucuk>
+                          D.Öncesi
+                        </TogBtn>
+                        <TogBtn aktif={s.donemTip === "sonrasi"} renk="#b45309"
+                          onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "sonrasi" ? null : "sonrasi")} kucuk>
+                          D.Sonrası
+                        </TogBtn>
+                      </div>
+                    )}
+
                     {/* Sil */}
                     {satirlar.length > 1 && (
                       <button onClick={() => removeSatir(s.id)} style={{
@@ -468,6 +503,12 @@ export default function HesaplamaFormu() {
                   {tarihMod === "tarih" && <Chip renk="#475569" etiket="Bitiş" deger={raporBitis} />}
                   <Chip renk={onikiAyGun >= 90 ? "var(--green)" : "var(--red)"} etiket="12 Ay Prim" deger={`${onikiAyGun} gün`} />
                   {canliOrt > 0 && <Chip renk={canliOrt >= bitisAsgari ? "var(--green)" : "#d97706"} etiket="Günlük Ort." deger={`${fmt(canliOrt)} ₺`} />}
+                  {raporTuru === "analik" && analikOncesiGun > 0 && (
+                    <Chip renk={analikOncesiAsim ? "var(--red)" : "#7c3aed"} etiket="D.Öncesi" deger={`${analikOncesiGun} / 56 gün${analikOncesiAsim ? " ⚠️" : ""}`} />
+                  )}
+                  {raporTuru === "analik" && analikSonrasiGun > 0 && (
+                    <Chip renk={analikSonrasiAsim ? "var(--red)" : "#b45309"} etiket="D.Sonrası" deger={`${analikSonrasiGun} / 112 gün${analikSonrasiAsim ? " ⚠️" : ""}`} />
+                  )}
                 </div>
               )}
               {onikiAyGun > 0 && onikiAyGun < 90 && !isKazaMH && raporTuru !== "analik" && (
@@ -475,6 +516,12 @@ export default function HesaplamaFormu() {
               )}
               {raporTuru === "analik" && toplamRaporGun > 168 && (
                 <BilgiKutu renk="kirmizi">⚠️ Analık raporu maksimum <b>168 gün (24 hafta)</b> olabilir. Girilen: <b>{toplamRaporGun} gün</b>. Hesaplama 168 gün üzerinden yapılacaktır.</BilgiKutu>
+              )}
+              {analikOncesiAsim && (
+                <BilgiKutu renk="kirmizi">⚠️ Doğum öncesi raporu maksimum <b>56 gün (8 hafta)</b> olabilir. Girilen: <b>{analikOncesiGun} gün</b>.</BilgiKutu>
+              )}
+              {analikSonrasiAsim && (
+                <BilgiKutu renk="kirmizi">⚠️ Doğum sonrası raporu maksimum <b>112 gün (16 hafta)</b> olabilir. Girilen: <b>{analikSonrasiGun} gün</b>.</BilgiKutu>
               )}
               {raporTuru === "analik" && toplamRaporGun > 168 && (
                 <BilgiKutu renk="kirmizi">⚠️ Analık raporu maksimum <b>24 hafta (168 gün)</b> olabilir. Girilen: <b>{toplamRaporGun} gün</b>. Hesaplama 168 gün üzerinden yapılır.</BilgiKutu>

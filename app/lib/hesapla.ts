@@ -23,7 +23,10 @@ export interface HesaplaInput {
   raporBitis: string;       // "YYYY-MM-DD"
   // Karma tedavide dönem listesi (opsiyonel, yoksa yatarakGun kullan)
   karmaDonemleri?: KarmaDonem[];
-  yatarakGun?: number;      // karmaDonemleri yoksa fallback
+  yatarakGun?: number;
+  // Analık: doğum öncesi ve sonrası gün sayıları
+  analikOncesiGun?: number;
+  analikSonrasiGun?: number;      // karmaDonemleri yoksa fallback
   ayKazanclar: AyKazanc[];  // 12 ay, en yakından eskiye
   // İş kazası/MH emsal kazanç
   emsalKazanc?: number;
@@ -91,15 +94,24 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
   const toplamRaporGun =
     Math.round((bitis.getTime() - baslangic.getTime()) / 86400000) + 1;
 
-  // ── 2. Analık max süre (24 hafta = 168 gün) ─────────────────
-  const analikMaxGun = 24 * 7; // 168
+  // ── 2. Analık max süre: öncesi 56, sonrası 112, toplam 168 gün ──
+  const analikMaxGun = 168;
   let kullanılanRaporGun = toplamRaporGun;
   let analikHaftaAsimi = false;
-  if (input.raporTuru === "analik" && toplamRaporGun > analikMaxGun) {
-    kullanılanRaporGun = analikMaxGun;
-    analikHaftaAsimi = true;
-    adimlar.push(`⚠️ Analık max 24 hafta (${analikMaxGun} gün) → rapor: ${toplamRaporGun} gün, hesaplama: ${analikMaxGun} gün`);
-    uyarilar.push({ tip: "uyari", mesaj: `Analık raporu maksimum 24 hafta (168 gün) olabilir. Hesaplama ${analikMaxGun} gün üzerinden yapılmaktadır.` });
+  if (input.raporTuru === "analik") {
+    const oncesi = Math.min(input.analikOncesiGun ?? toplamRaporGun, 56);
+    const sonrasi = Math.min(input.analikSonrasiGun ?? 0, 112);
+    const hesaplananMax = (input.analikOncesiGun !== undefined || input.analikSonrasiGun !== undefined)
+      ? oncesi + sonrasi
+      : Math.min(toplamRaporGun, analikMaxGun);
+    if (toplamRaporGun > hesaplananMax) {
+      kullanılanRaporGun = hesaplananMax;
+      analikHaftaAsimi = true;
+      adimlar.push(`⚠️ Analık max: D.Öncesi ${oncesi}/56 gün + D.Sonrası ${sonrasi}/112 gün = ${hesaplananMax} gün (rapor: ${toplamRaporGun} gün)`);
+      uyarilar.push({ tip: "uyari", mesaj: `Analık raporu: doğum öncesi max 56 gün, doğum sonrası max 112 gün. Hesaplama ${hesaplananMax} gün üzerinden yapılmaktadır.` });
+    } else {
+      kullanılanRaporGun = toplamRaporGun;
+    }
   }
 
   // ── 3. Bekleme süresi ────────────────────────────────────────
