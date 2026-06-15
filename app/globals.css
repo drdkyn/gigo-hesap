@@ -29,10 +29,14 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
 
 /* ── MOBİL: normal scroll ───────────────────────────────── */
-.pc-grid { display: flex; flex-direction: column; gap: 8px; }
-.kart    { padding: 10px 11px; }
-
-/* Bilgi kutusu: mobil ve PC aynı inline */
+.pc-grid { display: flex; flex-direction: column; gap: 6px; }
+.kart    { padding: 8px 10px; }
+.bolum-baslik { font-size: 12px; margin-bottom: 8px; }
+.tog-btn      { padding: 7px 5px; font-size: 12px; }
+.tog-btn-kucuk { padding: 4px 7px; font-size: 11px; }
+.bilgi-kutu  { padding: 6px 10px; font-size: 11px; margin-top: 6px; }
+.hesapla-btn { padding: 11px; font-size: 14px; }
+.gun-bilgi   { padding: 8px 12px; font-size: 12px; }
 
 /* ── PC: viewport'a tam sığan iki sütun ─────────────────── */
 @media (min-width: 900px) {
