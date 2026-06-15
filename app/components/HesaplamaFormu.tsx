@@ -303,105 +303,97 @@ export default function HesaplamaFormu() {
             <Kart>
               <Baslik no="2" metin="Rapor Süresi ve Şekli" />
 
-              {/* Mod toggle */}
-              <div className="mod-toggle" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 12 }}>
+              {/* Mod toggle - kompakt */}
+              <div className="mod-toggle" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: "1.5px solid var(--border)", borderRadius: 7, overflow: "hidden", marginBottom: 8 }}>
                 <button onClick={() => { setTarihMod("gun"); setSonuc(null); }} style={{
-                  padding: "10px 6px", border: "none", cursor: "pointer", fontSize: 13,
+                  padding: "7px 4px", border: "none", cursor: "pointer", fontSize: 12,
                   fontWeight: tarihMod === "gun" ? 700 : 500,
                   background: tarihMod === "gun" ? "var(--blue)" : "#f8fafc",
                   color: tarihMod === "gun" ? "#fff" : "var(--muted)",
                   borderRight: "1px solid var(--border)",
                 }}>🔢 Gün Sayısı Gir</button>
                 <button onClick={() => { setTarihMod("tarih"); setSonuc(null); }} style={{
-                  padding: "10px 6px", border: "none", cursor: "pointer", fontSize: 13,
+                  padding: "7px 4px", border: "none", cursor: "pointer", fontSize: 12,
                   fontWeight: tarihMod === "tarih" ? 700 : 500,
                   background: tarihMod === "tarih" ? "var(--blue)" : "#f8fafc",
                   color: tarihMod === "tarih" ? "#fff" : "var(--muted)",
                 }}>📅 Tarih Gir</button>
               </div>
 
-              {/* Satırlar */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {/* Satırlar - her biri tek satır */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {satirlar.map((s, idx) => (
                   <div key={s.id} style={{
                     background: s.tur === "yatarak" ? "#f0f4fa" : "#f0fdf4",
                     border: `1.5px solid ${s.tur === "yatarak" ? "#bfdbfe" : "#86efac"}`,
-                    borderRadius: 9, padding: "10px 12px",
+                    borderRadius: 8, padding: "7px 10px",
+                    display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
                   }}>
-                    {/* Satır başlığı: numara + tür seçimi + sil */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                      <span style={{ fontSize: 11, color: "var(--muted)", minWidth: 18 }}>{idx + 1}.</span>
-                      <div style={{ display: "flex", gap: 5, flex: 1 }}>
-                        <TogBtn aktif={s.tur === "ayakta"} renk="var(--green)"
-                          onClick={() => updateSatir(s.id, "tur", "ayakta")} kucuk>
-                          Ayakta (2/3)
-                        </TogBtn>
-                        <TogBtn aktif={s.tur === "yatarak"} renk="var(--blue)"
-                          onClick={() => updateSatir(s.id, "tur", "yatarak")} kucuk>
-                          Yatarak (1/2)
-                        </TogBtn>
-                      </div>
-                      {satirlar.length > 1 && (
-                        <button onClick={() => removeSatir(s.id)} style={{
-                          background: "#fee2e2", color: "#b91c1c", border: "none",
-                          borderRadius: 6, padding: "3px 8px", fontSize: 12, cursor: "pointer",
-                        }}>✕</button>
-                      )}
+                    {/* Numara */}
+                    <span style={{ fontSize: 10, color: "var(--muted)", minWidth: 14, flexShrink: 0 }}>{idx + 1}.</span>
+
+                    {/* Tür seçimi */}
+                    <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                      <TogBtn aktif={s.tur === "ayakta"} renk="var(--green)"
+                        onClick={() => updateSatir(s.id, "tur", "ayakta")} kucuk>Ayakta</TogBtn>
+                      <TogBtn aktif={s.tur === "yatarak"} renk="var(--blue)"
+                        onClick={() => updateSatir(s.id, "tur", "yatarak")} kucuk>Yatarak</TogBtn>
                     </div>
 
-                    {/* Gün modu: tek input */}
+                    {/* Gün veya tarih - flex ile yanına */}
                     {tarihMod === "gun" ? (
-                      <div>
-                        <label style={lb}>Gün Sayısı</label>
-                        <input
-                          type="number" min={1}
-                          value={s.gun ?? ""}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            updateSatir(s.id, "gun", v === "" ? null : Math.max(1, parseInt(v) || 1));
-                          }}
-                          className="gun-input"
-                          style={{ ...inp, maxWidth: 140, fontSize: 18, fontWeight: 700, textAlign: "center" }}
-                          placeholder="Gün" />
-                      </div>
+                      <input
+                        type="number" min={1}
+                        value={s.gun ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          updateSatir(s.id, "gun", v === "" ? null : Math.max(1, parseInt(v) || 1));
+                        }}
+                        className="gun-input"
+                        style={{ ...inp, width: 80, fontSize: 14, fontWeight: 700, textAlign: "center", padding: "5px 6px" }}
+                        placeholder="Gün" />
                     ) : (
-                      /* Tarih modu: başlangıç + bitiş */
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <div>
-                          <label style={lb}>Başlangıç</label>
-                          <input type="date" value={s.baslangic}
-                            onChange={(e) => { updateSatir(s.id, "baslangic", e.target.value); handleBaslangicChange(e.target.value); }}
-                            style={inp} />
-                        </div>
-                        <div>
-                          <label style={lb}>Bitiş</label>
-                          <input type="date" value={s.bitis} min={s.baslangic}
-                            onChange={(e) => updateSatir(s.id, "bitis", e.target.value)}
-                            style={inp} />
-                        </div>
+                      <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 200, alignItems: "center" }}>
+                        <input type="date" value={s.baslangic}
+                          onChange={(e) => { updateSatir(s.id, "baslangic", e.target.value); handleBaslangicChange(e.target.value); }}
+                          style={{ ...inp, padding: "5px 6px", fontSize: 12 }} />
+                        <span style={{ fontSize: 10, color: "var(--muted)", flexShrink: 0 }}>→</span>
+                        <input type="date" value={s.bitis} min={s.baslangic}
+                          onChange={(e) => updateSatir(s.id, "bitis", e.target.value)}
+                          style={{ ...inp, padding: "5px 6px", fontSize: 12 }} />
+                        {s.baslangic && s.bitis && (
+                          <span style={{ fontSize: 10, color: "var(--muted)", flexShrink: 0, whiteSpace: "nowrap" }}>
+                            {gunFarki(s.baslangic, s.bitis)} gün
+                          </span>
+                        )}
                       </div>
                     )}
-                    {/* Gün özeti */}
-                    {tarihMod === "tarih" && s.baslangic && s.bitis && (
-                      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
-                        {gunFarki(s.baslangic, s.bitis)} gün
-                      </div>
+
+                    {/* Sil */}
+                    {satirlar.length > 1 && (
+                      <button onClick={() => removeSatir(s.id)} style={{
+                        background: "#fee2e2", color: "#b91c1c", border: "none",
+                        borderRadius: 5, padding: "3px 7px", fontSize: 11, cursor: "pointer", flexShrink: 0,
+                      }}>✕</button>
                     )}
                   </div>
                 ))}
 
                 {/* Yeni satır ekle */}
                 <button onClick={addSatir} style={{
-                  background: "#f8fafc", border: "1.5px dashed var(--border)", borderRadius: 8,
-                  padding: "9px", fontSize: 13, color: "var(--blue)", cursor: "pointer", fontWeight: 600,
+                  background: "#f8fafc", border: "1.5px dashed var(--border)", borderRadius: 7,
+                  padding: "7px", fontSize: 12, color: "var(--blue)", cursor: "pointer", fontWeight: 600,
                 }}>+ Yeni Rapor Satırı Ekle</button>
               </div>
 
-              {/* Gün modu bilgi kutusu */}
+              {/* Gün modu bilgi kutusu — PC tek satır, mobil 2 satır */}
               {tarihMod === "gun" && (
-                <div className="gun-bilgi" style={{ marginTop: 10, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "12px 14px", fontSize: 13, color: "#1e40af", lineHeight: 1.7 }}>
-                  ℹ️ <b>Güncel asgari ücrete (2026) göre hesaplanacaktır.</b><br />
-                  Detaylı hesap için <b>Tarih Gir</b> seçin.
+                <div className="gun-bilgi" style={{
+                  marginTop: 8, background: "#eff6ff", border: "1px solid #bfdbfe",
+                  borderRadius: 8, padding: "10px 14px", color: "#1e40af", lineHeight: 1.6,
+                }}>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>ℹ️ Güncel asgari ücrete (2026) göre hesaplanacaktır. </span>
+                  <span className="gun-bilgi-alt" style={{ fontSize: 13 }}>Detaylı hesap için <b>Tarih Gir</b> seçin.</span>
                 </div>
               )}
 
