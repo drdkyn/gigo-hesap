@@ -127,11 +127,13 @@ export default function AnalikHesap({ onChange }: Props) {
 
     if (calisir && istirahStart > raporTarihi && dogumTarihi) {
       if (dogumTarihi <= istirahStart) {
-        // Doğum istirahat başlamadan olmuş → rapor tarihi ile doğum tarihi arası aktarılır
-        aktGun = gunFarki(raporTarihi, dogumTarihi) - 1; // -1 çünkü doğum günü öncesine kadar
+        // Doğum istirahat başlamadan olmuş
+        // Aktarılan = rapor → istirahat başlangıcı (yapılmayacak çalışma süresi)
+        // NOT: geç doğumda bu da ödenir, 56'nın üstü aşım olur
+        aktGun = gunFarki(raporTarihi, istirahStart) - 1; // -1 çünkü istirahat başladığı gün sayılmaz
       } else {
         // Normal: istirahat başlamadan doğuma kadar aktarılır
-        aktGun = gunFarki(raporTarihi, istirahStart) - 1; // -1 çünkü istirahat başladığı gün sayılmaz
+        aktGun = gunFarki(raporTarihi, istirahStart) - 1;
       }
     } else {
       aktGun = 0;
@@ -356,7 +358,7 @@ export default function AnalikHesap({ onChange }: Props) {
         )}
         {gecAsimVar && (
           <InfoSatir renk="#d97706">
-            ⏰ Geç doğum: {gecAsimGun} gün. İlk 2 gün ödenmez, <b>{gecAsimGun} gün</b> aşım <b>168 dışında ödenir</b>.
+            ⏰ Geç doğum: {gecAsimGun + 2} gün. İlk <b>2 gün ödenmez</b>, <b>{gecAsimGun} gün ödenir</b> (168 dışında).
           </InfoSatir>
         )}
       </DonemKart>
@@ -399,7 +401,7 @@ export default function AnalikHesap({ onChange }: Props) {
               {aktarilanGun > 0 && <> + <b>{aktarilanGun} aktarılan gün</b> (ödenecek)</>}
               {erkenGun > 0 && <> + <b>{erkenGun} erken doğum günü</b> (ödenecek)</>}
               {" "}= <b>{Math.min(sonrasiGun - gecAsimGun, sonrasiMax)} gün</b> (168 içinde ödenir)
-              {gecAsimVar && <><br/>+ <b>{gecAsimGun} geç doğum aşımı</b> (168 dışında ödenir)</>}
+              {gecAsimVar && <><br/>+ <b>{gecAsimGun + 2} geç doğum günü</b> (ilk 2 ödenmez, <b>{gecAsimGun} gün</b> 168 dışında ödenir)</>}
             </InfoSatir>
           )}
           <SatirListesi

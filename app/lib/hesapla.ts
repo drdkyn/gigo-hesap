@@ -24,9 +24,10 @@ export interface HesaplaInput {
   // Karma tedavide dönem listesi (opsiyonel, yoksa yatarakGun kullan)
   karmaDonemleri?: KarmaDonem[];
   yatarakGun?: number;
-  // Analık: doğum öncesi ve sonrası gün sayıları
+  // Analık: doğum öncesi ve sonrası gün sayıları + geç doğum aşımı
   analikOncesiGun?: number;
   analikSonrasiGun?: number;      // karmaDonemleri yoksa fallback
+  gecAsimGun?: number;            // geç doğum aşımı (168 dışında ödenir)
   ayKazanclar: AyKazanc[];  // 12 ay, en yakından eskiye
   // İş kazası/MH emsal kazanç
   emsalKazanc?: number;
@@ -79,6 +80,7 @@ export interface HesaplaResult {
   ayaktaToplamOdenek: number;
   yatarakToplamOdenek: number;
   toplamOdenek: number;
+  gecAsimGun: number; // geç doğum aşımı (168 dışında ödenir)
   adimlar: string[];
   uyarilar: UyariMesaj[];
 }
@@ -339,6 +341,7 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
     ayaktaToplamOdenek,
     yatarakToplamOdenek,
     toplamOdenek,
+    gecAsimGun: input.gecAsimGun ?? 0,
     adimlar,
     uyarilar,
   };

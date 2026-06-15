@@ -298,6 +298,7 @@ export default function HesaplamaFormu() {
         ayKazanclar: kullanilacakAylar,
         analikOncesiGun: raporTuru === "analik" ? analikOncesiGunHesap : undefined,
         analikSonrasiGun: raporTuru === "analik" ? analikSonrasiGunHesap : undefined,
+        gecAsimGun: raporTuru === "analik" ? analikSonuc?.gecAsimGun : undefined,
         emsalKazanc: emsalAktif ? emsalKazanc : undefined,
         emsalPrimGunu: emsalAktif ? emsalPrimGunu : undefined,
         normalMaasKazanc: normalMaasAktif ? normalMaaslar : undefined,
@@ -797,6 +798,9 @@ export default function HesaplamaFormu() {
                     <SonKart icon="💵" etiket="Ödenecek Tutar" deger={`${fmt(sonuc.toplamOdenek)} ₺`} renk="var(--red)" />
                   ) : (
                     <SonKart icon="✅" etiket="Ödenecek Gün" deger={`${sonuc.odenenGun} gün`} renk="var(--green)" />
+                  )}
+                  {raporTuru === "analik" && sonuc.gecAsimGun > 0 && (
+                    <SonKart icon="⏰" etiket="Geç Doğum Aşımı" deger={`${sonuc.gecAsimGun} gün`} renk="#d97706" />
                   )}
                   <SonKart icon="📊" etiket="12 Ay Prim Günü" deger={`${sonuc.toplamOnikiAyPrimGun} gün`}
                     renk={sonuc.doksan_gun_sartiSaglandi ? "var(--green)" : "var(--red)"}
