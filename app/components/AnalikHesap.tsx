@@ -154,6 +154,8 @@ export default function AnalikHesap({ onChange }: Props) {
     setAktarilanGun(aktGun);
     setErkenGun(erken);
     setGecAsimGun(gecAsim);
+    setOncesiBaslangic(oBas);
+    setOncesiBitis(oBit);
 
     // Doğum sonrası: 16 hafta (112 gün) + aktarılan + erken + geç doğum aşımı
     // Toplam maks 168 (aktarılan+erken dahil), geç doğum aşımı ayrı sayılır
