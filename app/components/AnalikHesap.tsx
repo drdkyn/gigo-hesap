@@ -323,11 +323,25 @@ export default function AnalikHesap({ onChange }: Props) {
             )}
             {oncesiBaslangic && (
               <InfoSatir>
-                İstirahat başlangıcı: <b>{fmt_tarih(oncesiBaslangic)}</b>
-                {calisir && aktarilanGun > 0 && (
-                  <span style={{ color: "#059669", marginLeft: 8 }}>
-                    (Süresinde doğum olursa +{aktarilanGun} gün doğum sonrasına aktarılacak ve ödenecek)
-                  </span>
+                {calisir ? (
+                  <>
+                    İstirahat başlangıcı: <b>{fmt_tarih(oncesiBaslangic)}</b>
+                    {aktarilanGun > 0 && (
+                      <span style={{ color: "#059669", marginLeft: 8 }}>
+                        (Süresinde doğum olursa +{aktarilanGun} gün doğum sonrasına aktarılacak ve ödenecek)
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    Doğum öncesi rapor süresi: <b>32→40 hafta = 56 gün</b>
+                    <br/>
+                    {kayipHafta > 0 && (
+                      <>
+                        32. haftadan sonra rapor alındı için doğum öncesi max = {doğumOncesiMaxPotansiyel} gün
+                      </>
+                    )}
+                  </>
                 )}
               </InfoSatir>
             )}
@@ -386,13 +400,33 @@ export default function AnalikHesap({ onChange }: Props) {
               ℹ️ Hesaplanan süre ({sonrasiGun} gün) max sınırı ({sonrasiMax} gün) aşıyor. Hesaplama <b>{sonrasiMax} gün</b> üzerinden yapılacaktır.
             </InfoSatir>
           )}
-          {(aktarilanGun > 0 || erkenGun > 0 || gecAsimVar) && (
+          {(aktarilanGun > 0 || erkenGun > 0 || gecAsimVar || !calisir) && (
             <InfoSatir renk="#b45309" style={{ marginBottom: 6 }}>
-              16 hafta (112 gün)
-              {aktarilanGun > 0 && <> + <b>{aktarilanGun} aktarılan gün</b> (ödenecek)</>}
-              {erkenGun > 0 && <> + <b>{erkenGun} erken doğum günü</b> (ödenecek)</>}
-              {" "}= <b>{Math.min(sonrasiGun - gecAsimGun, sonrasiMax)} gün</b> (168 içinde ödenir)
-              {gecAsimVar && <><br/>+ <b>{gecAsimGun + 2} geç doğum günü</b> (ilk 2 ödenmez, <b>{gecAsimGun} gün</b> 168 dışında ödenir)</>}
+              {calisir ? (
+                <>
+                  16 hafta (112 gün)
+                  {aktarilanGun > 0 && <> + <b>{aktarilanGun} aktarılan gün</b> (ödenecek)</>}
+                  {erkenGun > 0 && <> + <b>{erkenGun} erken doğum günü</b> (ödenecek)</>}
+                  {" "}= <b>{Math.min(sonrasiGun - gecAsimGun, sonrasiMax)} gün</b> (168 içinde ödenir)
+                  {gecAsimVar && <><br/>+ <b>{gecAsimGun + 2} geç doğum günü</b> (ilk 2 ödenmez, <b>{gecAsimGun} gün</b> 168 dışında ödenir)</>}
+                </>
+              ) : (
+                <>
+                  <b>112 gün</b> (temel doğum sonrası)
+                  {doğumOncesiMaxPotansiyel > 0 && (
+                    <>
+                      <br/>Doğum öncesi <b>{doğumOncesiMaxPotansiyel} gün</b> kullanıldı (rapor süresi)
+                      <br/>Doğum sonrasına aktarılan: <b>0 gün</b> (aktarma yok)
+                      <br/>Toplam 168 içinde: <b>{doğumOncesiMaxPotansiyel + 112} gün</b>
+                    </>
+                  )}
+                  {gecAsimVar && (
+                    <>
+                      <br/>+ <b>{gecAsimGun + 2} geç doğum günü</b> (ilk 2 ödenmez, <b>{gecAsimGun} gün</b> 168 dışında ödenir)
+                    </>
+                  )}
+                </>
+              )}
             </InfoSatir>
           )}
           <SatirListesi
