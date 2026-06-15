@@ -8,6 +8,9 @@ import { getAsgariUcret, getGunlukAsgariUcret } from "../lib/asgariUcret";
 import AnalikHesap, { AnalikSonuc } from "./AnalikHesap";
 
 /* ── Yardımcılar ─────────────────────────────────────── */
+function gunFarki(a: string, b: string): number {
+  return Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000) + 1);
+}
 function getOnceki12Ay(baslangicStr: string): string[] {
   const d = baslangicStr ? new Date(baslangicStr) : new Date();
   return Array.from({ length: 12 }, (_, i) => {
@@ -327,7 +330,13 @@ export default function HesaplamaFormu() {
   };
 
   /* Anlık özetler */
-  const toplamRaporGun = raporBaslangic && raporBitis ? gunFarki(raporBaslangic, raporBitis) : 0;
+  // Analık özel hesap: doğum öncesi + doğum sonrası (arası kesilmiş olabilir)
+  let toplamRaporGun = 0;
+  if (raporTuru === "analik" && tarihMod === "tarih" && analikSonuc) {
+    toplamRaporGun = analikSonuc.oncesiGun + analikSonuc.sonrasiGun;
+  } else {
+    toplamRaporGun = raporBaslangic && raporBitis ? gunFarki(raporBaslangic, raporBitis) : 0;
+  }
   const onikiAyGun = ayKazancSatirlar.reduce((s, a) => s + a.primGunu, 0);
   const bazKazanc = ayKazancSatirlar.reduce((s, a) => s + a.kazanc, 0);
   const bazGun = onikiAyGun;
