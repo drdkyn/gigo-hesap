@@ -466,7 +466,7 @@ export default function HesaplamaFormu() {
                   {canliOrt > 0 && <Chip renk={canliOrt >= bitisAsgari ? "var(--green)" : "#d97706"} etiket="Günlük Ort." deger={`${fmt(canliOrt)} ₺`} />}
                 </div>
               )}
-              {onikiAyGun > 0 && onikiAyGun < 90 && (
+              {onikiAyGun > 0 && onikiAyGun < 90 && !isKazaMH && (
                 <BilgiKutu renk="kirmizi">⚠️ Son 12 ayda <b>{onikiAyGun} gün</b> prim var. Hak için <b>90 gün</b> gerekli.</BilgiKutu>
               )}
             </Kart>

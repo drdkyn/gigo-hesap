@@ -180,12 +180,15 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
     ayaktaOdenenGun = toplamOdenenGun;
   }
 
-  // ── 5. 90 gün şartı ──────────────────────────────────────────
+  // ── 5. 90 gün şartı (hastalık ve analıkta geçerli, iş kazası/MH'da aranmaz) ──
   const toplamOnikiAyPrimGun = input.ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
-  const doksan_gun_sartiSaglandi = toplamOnikiAyPrimGun >= 90;
-  adimlar.push(`Son 12 ay prim günü: ${toplamOnikiAyPrimGun} → 90 gün şartı: ${doksan_gun_sartiSaglandi ? "✓" : "✗ SAĞLANMADI"}`);
-  if (!doksan_gun_sartiSaglandi) {
-    uyarilar.push({ tip: "hata", mesaj: `Ödeneğe hak kazanmak için son 1 yılda en az 90 gün prim gerekmektedir. Girilen: ${toplamOnikiAyPrimGun} gün.` });
+  const isKazaMH = input.raporTuru === "iskazasi" || input.raporTuru === "meslekhastligi";
+  const doksan_gun_sartiSaglandi = isKazaMH || toplamOnikiAyPrimGun >= 90;
+  if (!isKazaMH) {
+    adimlar.push(`Son 12 ay prim günü: ${toplamOnikiAyPrimGun} → 90 gün şartı: ${doksan_gun_sartiSaglandi ? "✓" : "✗ SAĞLANMADI"}`);
+    if (!doksan_gun_sartiSaglandi) {
+      uyarilar.push({ tip: "hata", mesaj: `Ödeneğe hak kazanmak için son 1 yılda en az 90 gün prim gerekmektedir. Girilen: ${toplamOnikiAyPrimGun} gün.` });
+    }
   }
 
   // ── 6. Baz dönem ─────────────────────────────────────────────
@@ -198,7 +201,6 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
 
   // Emsal kazanç (iş kazası/MH, o ay hiç çalışma yoksa)
   let islemAylar = [...kullanilanAylar];
-  const isKazaMH = input.raporTuru === "iskazasi" || input.raporTuru === "meslekhastligi";
   if (isKazaMH && input.emsalKazanc && input.emsalKazanc > 0 && islemAylar[0]?.primGunu === 0) {
     islemAylar[0] = { ...islemAylar[0], kazanc: input.emsalKazanc, primGunu: input.emsalPrimGunu ?? 1 };
     adimlar.push(`İş kazası emsal kazanç uygulandı: ${fmt(input.emsalKazanc)} ₺`);
