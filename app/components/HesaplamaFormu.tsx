@@ -44,7 +44,7 @@ interface RaporSatir {
 
 let satirSayac = 3;
 function yeniSatir(tur: "ayakta" | "yatarak" = "ayakta"): RaporSatir {
-  return { id: satirSayac++, tur, donemTip: null, gun: null, baslangic: "", bitis: "" };
+  return { id: satirSayac++, tur, donemTip: "oncesi", gun: null, baslangic: "", bitis: "" };
 }
 
 export default function HesaplamaFormu() {
@@ -56,8 +56,8 @@ export default function HesaplamaFormu() {
   // 2. Rapor süresi ve şekli
   const [tarihMod, setTarihMod] = useState<"gun" | "tarih">("gun");
   const [satirlar, setSatirlar] = useState<RaporSatir[]>([
-    { id: 1, tur: "ayakta", donemTip: null, gun: null, baslangic: "", bitis: "" },
-    { id: 2, tur: "ayakta", donemTip: null, gun: null, baslangic: "", bitis: "" },
+    { id: 1, tur: "ayakta", donemTip: "oncesi", gun: null, baslangic: "", bitis: "" },
+    { id: 2, tur: "ayakta", donemTip: "sonrasi", gun: null, baslangic: "", bitis: "" },
   ]);
 
   // Hesaplama için türetilen değerler
@@ -272,8 +272,8 @@ export default function HesaplamaFormu() {
     setSonuc(null); setHata(null); setKazancMod("manuel");
     setAyKazancSatirlar(ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 })));
     setSatirlar([
-      { id: 1, tur: "ayakta", donemTip: null, gun: null, baslangic: "", bitis: "" },
-      { id: 2, tur: "ayakta", donemTip: null, gun: null, baslangic: "", bitis: "" },
+      { id: 1, tur: "ayakta", donemTip: "oncesi", gun: null, baslangic: "", bitis: "" },
+      { id: 2, tur: "ayakta", donemTip: "sonrasi", gun: null, baslangic: "", bitis: "" },
     ]);
   };
 
@@ -420,8 +420,8 @@ export default function HesaplamaFormu() {
                         </div>
                         {raporTuru === "analik" && (
                           <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
-                            <TogBtn aktif={s.donemTip === "oncesi"} renk="#7c3aed" onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "oncesi" ? null : "oncesi")} kucuk>D.Önc.</TogBtn>
-                            <TogBtn aktif={s.donemTip === "sonrasi"} renk="#b45309" onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "sonrasi" ? null : "sonrasi")} kucuk>D.Son.</TogBtn>
+                            <TogBtn aktif={s.donemTip === "oncesi"} renk="#7c3aed" onClick={() => updateSatir(s.id, "donemTip", "oncesi")} kucuk>D.Önc.</TogBtn>
+                            <TogBtn aktif={s.donemTip === "sonrasi"} renk="#b45309" onClick={() => updateSatir(s.id, "donemTip", "sonrasi")} kucuk>D.Son.</TogBtn>
                           </div>
                         )}
                         {satirlar.length > 1 && (
@@ -454,8 +454,8 @@ export default function HesaplamaFormu() {
                           <TogBtn aktif={s.tur === "yatarak"} renk="var(--blue)" onClick={() => updateSatir(s.id, "tur", "yatarak")} kucuk>Yatarak</TogBtn>
                           {raporTuru === "analik" && (
                             <>
-                              <TogBtn aktif={s.donemTip === "oncesi"} renk="#7c3aed" onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "oncesi" ? null : "oncesi")} kucuk>D.Öncesi</TogBtn>
-                              <TogBtn aktif={s.donemTip === "sonrasi"} renk="#b45309" onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "sonrasi" ? null : "sonrasi")} kucuk>D.Sonrası</TogBtn>
+                              <TogBtn aktif={s.donemTip === "oncesi"} renk="#7c3aed" onClick={() => updateSatir(s.id, "donemTip", "oncesi")} kucuk>D.Öncesi</TogBtn>
+                              <TogBtn aktif={s.donemTip === "sonrasi"} renk="#b45309" onClick={() => updateSatir(s.id, "donemTip", "sonrasi")} kucuk>D.Sonrası</TogBtn>
                             </>
                           )}
                         </div>
