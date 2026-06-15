@@ -111,6 +111,8 @@ export default function AnalikHesap({ onChange }: Props) {
 
     // Tahmini doğum tarihi (40. hafta)
     const tahmini40 = addWeeks(raporTarihi, 40 - kacincuHafta);
+
+    let istirahStart: string;
     let aktGun = 0;
 
     if (!calisir) {
