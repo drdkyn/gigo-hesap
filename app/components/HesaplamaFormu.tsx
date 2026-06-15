@@ -183,20 +183,32 @@ export default function HesaplamaFormu() {
       setHata("12 ay toplam prim günü sıfır olamaz."); return;
     }
 
-    // Karma dönemler (sadece tarih modunda anlamlı)
-    const karmaDon: KarmaDonem[] = tedaviTuru === "karma"
-      ? gecerli.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur }))
-      : [];
+    // Karma dönemler
+    // Tarih modunda: gerçek tarihlerle
+    // Gün modunda: satır sırasını koruyarak yapay tarih oluştur (bugünden itibaren birikimli)
+    let karmaDon: KarmaDonem[] | undefined = undefined;
+    let yatarakGunSayisi: number | undefined = undefined;
 
-    // Gün modunda yatarakGun hesapla
-    const yatarakGunSayisi = tedaviTuru === "karma"
-      ? gecerli.filter(s => s.tur === "yatarak").reduce((sum, s) => sum + (s.gun ?? 0), 0)
-      : undefined;
+    if (tedaviTuru === "karma") {
+      if (tarihMod === "tarih") {
+        karmaDon = gecerli.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur }));
+      } else {
+        // Gün modunda: satır sırasını koruyarak biriktir
+        let offset = 0;
+        karmaDon = gecerli.map(s => {
+          const bas = addDays(bugun, offset);
+          const bit = addDays(bugun, offset + (s.gun ?? 1) - 1);
+          offset += (s.gun ?? 1);
+          return { baslangic: bas, bitis: bit, tur: s.tur };
+        });
+        yatarakGunSayisi = gecerli.filter(s => s.tur === "yatarak").reduce((sum, s) => sum + (s.gun ?? 0), 0);
+      }
+    }
 
     try {
       const r = hesapla({
         raporTuru, tedaviTuru, raporBaslangic, raporBitis,
-        karmaDonemleri: tedaviTuru === "karma" && tarihMod === "tarih" ? karmaDon : undefined,
+        karmaDonemleri: karmaDon,
         yatarakGun: tedaviTuru === "karma" && tarihMod === "gun" ? yatarakGunSayisi : undefined,
         ayKazanclar: kullanilacakAylar,
         emsalKazanc: emsalAktif ? emsalKazanc : undefined,
@@ -263,8 +275,7 @@ export default function HesaplamaFormu() {
             {/* ── 1. RAPOR TÜRÜ ── */}
             <Kart>
               <Baslik no="1" metin="Rapor Türü" />
-              {/* Üst sıra: 3 buton yan yana */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
                 <TogBtn aktif={raporTuru === "hastalik"} renk="var(--blue)"
                   onClick={() => { setRaporTuru("hastalik"); setSonuc(null); }}>
                   Hastalık
@@ -274,28 +285,14 @@ export default function HesaplamaFormu() {
                   Analık
                 </TogBtn>
                 <TogBtn aktif={isKazaMH} renk="var(--blue)"
-                  onClick={() => { setRaporTuru("iskazasi"); setSonuc(null); }}>
-                  İşkazası /<br />
-                  <span style={{ fontSize: 11 }}>Meslek Hst.</span>
+                  onClick={() => { setRaporTuru(raporTuru === "iskazasi" ? "meslekhastligi" : "iskazasi"); setSonuc(null); }}>
+                  İşkazası /<br /><span style={{ fontSize: 10 }}>Meslek Hst.</span>
                 </TogBtn>
               </div>
-
-              {/* İşkazası/MH seçilince alt seçenek */}
-              {isKazaMH && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
-                  <TogBtn aktif={raporTuru === "iskazasi"} renk="#475569" onClick={() => { setRaporTuru("iskazasi"); setSonuc(null); }} kucuk>
-                    İş Kazası
-                  </TogBtn>
-                  <TogBtn aktif={raporTuru === "meslekhastligi"} renk="#475569" onClick={() => { setRaporTuru("meslekhastligi"); setSonuc(null); }} kucuk>
-                    Meslek Hastalığı
-                  </TogBtn>
-                </div>
-              )}
-
               <BilgiKutu renk="mavi">
-                {raporTuru === "hastalik"       && <>Son 12 ay ortalaması baz alınır, ilk 2 gün ödenmez. 90 gün prim şartı var.</>}
-                {raporTuru === "analik"         && <>Son 12 ay ortalaması baz alınır, ilk günden ödeme. 90 gün prim şartı var. Max 24 hafta / 168 gün.</>}
-                {isKazaMH                       && <>Son 12 ay ortalaması baz alınır, 90 gün şartı aranmaz.</>}
+                {raporTuru === "hastalik" && <>Son 12 ay ortalaması baz alınır, ilk 2 gün ödenmez. 90 gün prim şartı var.</>}
+                {raporTuru === "analik"   && <>Son 12 ay ortalaması baz alınır, ilk günden ödeme. 90 gün prim şartı var. Max 24 hafta / 168 gün.</>}
+                {isKazaMH                && <>Son 12 ay ortalaması baz alınır, ilk günden ödeme. 90 gün şartı aranmaz.</>}
               </BilgiKutu>
             </Kart>
 
@@ -318,6 +315,15 @@ export default function HesaplamaFormu() {
                   background: tarihMod === "tarih" ? "var(--blue)" : "#f8fafc",
                   color: tarihMod === "tarih" ? "#fff" : "var(--muted)",
                 }}>📅 Tarih Gir</button>
+              </div>
+
+              {/* Uyarı: kronolojik sıra önemli */}
+              <div style={{
+                background: "#fffbeb", border: "1px solid #fde68a",
+                borderRadius: 6, padding: "5px 10px", fontSize: 11,
+                color: "#92400e", marginBottom: 6, fontWeight: 600,
+              }}>
+                ⚠️ Rapordaki sırası ile giriniz. (İlk 2 gün ödenmez kuralı satır sırasına göre uygulanır.)
               </div>
 
               {/* Satırlar - her biri tek satır */}

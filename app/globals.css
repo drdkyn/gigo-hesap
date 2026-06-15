@@ -13,7 +13,7 @@
   --muted:      #64748b;
   --card-bg:    #ffffff;
   --shadow:     0 2px 8px rgba(0,0,0,0.07);
-  --header-h:   58px;
+  --header-h:   72px;
 }
 
 html, body { height: 100%; }
@@ -91,9 +91,9 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
   .hesapla-btn { padding: 9px !important; font-size: 13px !important; }
   .not-kutu { padding: 6px 9px !important; font-size: 10px !important; }
   .sonuc-placeholder { padding: 20px 14px !important; }
-  .header-title { font-size: 14px !important; }
-  .header-sub   { font-size: 10px !important; }
-  .header-ikon  { width: 34px !important; height: 34px !important; font-size: 18px !important; }
+  .header-title { font-size: 20px !important; }
+  .header-sub   { font-size: 12px !important; }
+  .header-ikon  { width: 48px !important; height: 48px !important; font-size: 26px !important; border-radius: 14px !important; }
 
   /* Bilgi kutusu PC'de tek satır */
   .gun-bilgi { padding: 7px 12px !important; }
