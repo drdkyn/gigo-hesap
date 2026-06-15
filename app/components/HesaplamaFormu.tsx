@@ -328,9 +328,11 @@ export default function HesaplamaFormu() {
       if (s.baslangic && s.bitis) return sum + gunFarki(s.baslangic, s.bitis);
       return sum;
     }, 0);
-  const analikOncesiAsim = raporTuru === "analik" && analikOncesiGun > 56;
+  // Analık + tarih modunda AnalikHesap bileşeni kendi uyarılarını gösterir
+  const analikTarihModu = raporTuru === "analik" && tarihMod === "tarih";
+  const analikOncesiAsim = !analikTarihModu && raporTuru === "analik" && analikOncesiGun > 56;
   const analikSonrasiMaxGun = analikOncesiGun === 0 ? 168 : 112;
-  const analikSonrasiAsim = raporTuru === "analik" && analikSonrasiGun > analikSonrasiMaxGun;
+  const analikSonrasiAsim = !analikTarihModu && raporTuru === "analik" && analikSonrasiGun > analikSonrasiMaxGun;
   const bitisAsgari = raporBaslangic ? getGunlukAsgariUcret(new Date(raporBaslangic)) : 0;
   const isKazaMH = raporTuru === "iskazasi" || raporTuru === "meslekhastligi";
 

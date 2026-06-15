@@ -95,8 +95,8 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
     Math.round((bitis.getTime() - baslangic.getTime()) / 86400000) + 1;
 
   // ── 2. Analık max süre ──────────────────────────────────────
-  // Kural: D.Öncesi max 56 gün + D.Sonrası max 112 gün = 168 gün
-  //        Eğer D.Öncesi yoksa (0 veya girilmemiş): D.Sonrası 168 güne kadar olabilir
+  // Kural: D.Öncesi max 56 gün
+  //        D.Sonrası: 112 + aktarılan + erken (AnalikHesap tarafından doğru hesaplanmış gelir)
   //        Toplam hiçbir zaman 168'i geçemez
   const analikMaxGun = 168;
   let kullanılanRaporGun = toplamRaporGun;
@@ -107,27 +107,21 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
     const herhangiGirildi = input.analikOncesiGun !== undefined || input.analikSonrasiGun !== undefined;
 
     if (herhangiGirildi) {
-      // D.Öncesi yoksa sonrası 168'e kadar; varsa öncesi max 56, sonrası max 112
-      const maxOncesi = 56;
-      const maxSonrasi = girilenOncesi === 0 ? 168 : 112;
-      const oncesiKesik = Math.min(girilenOncesi, maxOncesi);
-      const sonrasiKesik = Math.min(girilenSonrasi, maxSonrasi);
-      const hesaplananMax = Math.min(oncesiKesik + sonrasiKesik, 168);
+      const oncesiKesik = Math.min(girilenOncesi, 56);
+      // Sonrası: gelen değer zaten aktarılan+erken içeriyor, sadece toplam 168'e bak
+      const sonrasiKesik = Math.min(girilenSonrasi, analikMaxGun);
+      const hesaplananMax = Math.min(oncesiKesik + sonrasiKesik, analikMaxGun);
       if (toplamRaporGun > hesaplananMax) {
         kullanılanRaporGun = hesaplananMax;
         analikHaftaAsimi = true;
-        const aciklama = girilenOncesi === 0
-          ? `D.Öncesi yok → D.Sonrası max 168 gün. Hesaplama ${hesaplananMax} gün.`
-          : `D.Öncesi max 56 gün + D.Sonrası max 112 gün = ${hesaplananMax} gün.`;
-        adimlar.push(`⚠️ Analık max: ${aciklama} (rapor: ${toplamRaporGun} gün)`);
-        uyarilar.push({ tip: "uyari", mesaj: `Analık raporu sınırı aşıldı. ${aciklama} Hesaplama ${hesaplananMax} gün üzerinden yapılmaktadır.` });
+        adimlar.push(`⚠️ Analık max: D.Öncesi ${oncesiKesik}/56 gün + D.Sonrası ${sonrasiKesik} gün = ${hesaplananMax} gün (rapor: ${toplamRaporGun} gün)`);
+        uyarilar.push({ tip: "uyari", mesaj: `Analık raporu sınırı aşıldı. Hesaplama ${hesaplananMax} gün üzerinden yapılmaktadır.` });
       } else {
         kullanılanRaporGun = toplamRaporGun;
       }
     } else {
-      // Dönem girilmemiş: toplam 168 sınırı
-      if (toplamRaporGun > 168) {
-        kullanılanRaporGun = 168;
+      if (toplamRaporGun > analikMaxGun) {
+        kullanılanRaporGun = analikMaxGun;
         analikHaftaAsimi = true;
         adimlar.push(`⚠️ Analık max 168 gün. Hesaplama 168 gün.`);
         uyarilar.push({ tip: "uyari", mesaj: `Analık raporu maksimum 168 gün olabilir. Hesaplama 168 gün üzerinden yapılmaktadır.` });
