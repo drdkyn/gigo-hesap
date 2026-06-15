@@ -121,14 +121,10 @@ export default function AnalikHesap({ onChange }: Props) {
     if (calisir && istirahStart > raporTarihi && dogumTarihi) {
       if (dogumTarihi <= istirahStart) {
         // Doğum istirahat başlamadan olmuş → rapor tarihi ile doğum tarihi arası aktarılır
-        const rT = new Date(raporTarihi);
-        const dT = new Date(dogumTarihi);
-        aktGun = Math.max(0, Math.round((dT.getTime() - rT.getTime()) / 86400000));
+        aktGun = gunFarki(raporTarihi, dogumTarihi) - 1; // -1 çünkü doğum günü öncesine kadar
       } else {
         // Normal: istirahat başlamadan doğuma kadar aktarılır
-        const rT = new Date(raporTarihi);
-        const iT = new Date(istirahStart);
-        aktGun = Math.max(0, Math.round((iT.getTime() - rT.getTime()) / 86400000));
+        aktGun = gunFarki(raporTarihi, istirahStart) - 1; // -1 çünkü istirahat başladığı gün sayılmaz
       }
     } else {
       aktGun = 0;
@@ -183,7 +179,7 @@ export default function AnalikHesap({ onChange }: Props) {
       oncesiBaslangic, oncesiBitis: oBit,
       oncesiGun: Math.min(gunFarki(oncesiBaslangic, oBit), 56),
       sonrasiBaslangic, sonrasiBitis,
-      sonrasiGun: sonrasiBitis ? Math.min(gunFarki(sonrasiBaslangic, sonrasiBitis), aktarilanGun === 0 ? 168 : 112) : 0,
+      sonrasiGun: sonrasiBitis ? Math.min(gunFarki(sonrasiBaslangic, sonrasiBitis), Math.min(112 + aktarilanGun + erkenGun, 168)) : 0,
       toplamGun: 0,
       aktarilanGun, erkenDogumEkGun: erkenGun,
       oncesiSatirlar, sonrasiSatirlar,
