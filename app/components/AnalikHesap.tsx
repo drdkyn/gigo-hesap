@@ -157,14 +157,13 @@ export default function AnalikHesap({ onChange }: Props) {
     setOncesiBaslangic(oBas);
     setOncesiBitis(oBit);
 
-    // Doğum sonrası: 16 hafta (112 gün) + aktarılan + erken + geç doğum aşımı
-    // Toplam maks 168 (aktarılan+erken dahil), geç doğum aşımı ayrı sayılır
+    // Doğum sonrası: 16 hafta (112 gün) + aktarılan + erken (168 sınırında)
+    // Geç doğum aşımı ayrı sayılır (168 dışında ödenir, tarih hesabında dahil değil)
     if (dogumTarihi) {
       const sBas = dogumTarihi;
-      // 112 + aktarılan + erken gün (168 sınırına dahil)
+      // 112 + aktarılan + erken gün (168 sınırına dahil) — gecAsim dahil ETMİ
       const sonrasiToplamGun = 112 + aktGun + erken;
-      // geç doğum aşımı 168 dışında ödenir
-      const sBit = addDays(dogumTarihi, sonrasiToplamGun + gecAsim);
+      const sBit = addDays(dogumTarihi, sonrasiToplamGun);
       setSonrasiBaslangic(sBas);
       setSonrasiBitis(sBit);
       setOncesiSatirlar([yeniDonemSatir(oBas, oBit || oBas, "ayakta")]);
@@ -259,10 +258,9 @@ export default function AnalikHesap({ onChange }: Props) {
   const oncesiGun = oncesiBaslangic && oncesiBitis && oncesiBitis >= oncesiBaslangic
     ? gunFarki(oncesiBaslangic, oncesiBitis) : 0;
   const sonrasiGun = sonrasiBaslangic && sonrasiBitis ? gunFarki(sonrasiBaslangic, sonrasiBitis) : 0;
-  // Sonrası max: 112 + aktarılan + erken (168 dahil), geç aşım ayrı sayılır
-  const sonrasiMaxIcindeOdenen = Math.min(112 + aktarilanGun + erkenGun, 168);
-  // Ama tarih hesabında gecAsim da ekleniyor, o yüzden uyarı için toplam kontrol
-  const sonrasiMax = sonrasiMaxIcindeOdenen + gecAsimGun;
+  // Sonrası max: 112 + aktarılan + erken (168 dahil)
+  // Geç aşım 168 DIŞINDA sayılır, tarih ve max hesabına dahil değil
+  const sonrasiMax = Math.min(112 + aktarilanGun + erkenGun, 168);
   const oncesiAsim = oncesiGun > 56;
   const sonrasiAsim = false;
   const toplamAsim = (oncesiGun + sonrasiGun) > 168;
@@ -419,8 +417,8 @@ export default function AnalikHesap({ onChange }: Props) {
                   16 hafta (112 gün)
                   {aktarilanGun > 0 && <> + <b>{aktarilanGun} aktarılan gün</b> (ödenecek)</>}
                   {erkenGun > 0 && <> + <b>{erkenGun} erken doğum günü</b> (ödenecek)</>}
-                  {" "}= <b>{Math.min(sonrasiGun - gecAsimGun, Math.min(112 + aktarilanGun + erkenGun, 168))} gün</b> (168 içinde ödenir)
-                  {gecAsimVar && <><br/>+ <b>{gecAsimGun + 2} geç doğum günü</b> (ilk 2 ödenmez, <b>{gecAsimGun} gün</b> 168 dışında ödenir)</>}
+                  {" "}= <b>{Math.min(sonrasiGun, Math.min(112 + aktarilanGun + erkenGun, 168))} gün</b> (168 içinde ödenir)
+                  {gecAsimVar && <><br/>+ <b>{gecAsimGun + 2} geç doğum günü</b> (ilk 2 ödenmez, <b>{gecAsimGun} gün</b> 168 DIŞINDA ödenir)</>}
                 </>
               ) : (
                 <>
