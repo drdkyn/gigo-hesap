@@ -120,18 +120,16 @@ export default function AnalikHesap({ onChange }: Props) {
 
     if (calisir && istirahStart > raporTarihi && dogumTarihi) {
       if (dogumTarihi <= istirahStart) {
-        // Doğum istirahat başlamadan olmuş → tüm planlanan öncesi (raporTarihi→istirahStart) aktarılır
+        // Doğum istirahat başlamadan olmuş → rapor tarihi ile doğum tarihi arası aktarılır
         const rT = new Date(raporTarihi);
-        const iT = new Date(istirahStart);
-        aktGun = Math.max(0, Math.round((iT.getTime() - rT.getTime()) / 86400000));
+        const dT = new Date(dogumTarihi);
+        aktGun = Math.max(0, Math.round((dT.getTime() - rT.getTime()) / 86400000));
       } else {
+        // Normal: istirahat başlamadan doğuma kadar aktarılır
         const rT = new Date(raporTarihi);
         const iT = new Date(istirahStart);
         aktGun = Math.max(0, Math.round((iT.getTime() - rT.getTime()) / 86400000));
       }
-    } else if (!calisir && dogumTarihi && dogumTarihi <= istirahStart) {
-      // Aktarma yok ama doğum rapor tarihinde veya önce — aktarılan 0
-      aktGun = 0;
     } else {
       aktGun = 0;
     }
@@ -316,7 +314,7 @@ export default function AnalikHesap({ onChange }: Props) {
                 İstirahat başlangıcı: <b>{fmt_tarih(oncesiBaslangic)}</b>
                 {calisir && aktarilanGun > 0 && (
                   <span style={{ color: "#059669", marginLeft: 8 }}>
-                    (+{aktarilanGun} gün doğum sonrasına aktarılacak ve ödenecek)
+                    (Süresinde doğum olursa +{aktarilanGun} gün doğum sonrasına aktarılacak ve ödenecek)
                   </span>
                 )}
               </InfoSatir>
@@ -332,11 +330,6 @@ export default function AnalikHesap({ onChange }: Props) {
           <input type="date" value={dogumTarihi}
             onChange={e => setDogumTarihi(e.target.value)} style={{ ...inp, maxWidth: 200 }} />
         </div>
-        {erkenGun > 0 && oncesiRaporVar && (
-          <InfoSatir renk="#b45309">
-            40 haftadan önce doğum: <b>+{erkenGun} gün</b> doğum sonrasına eklendi
-          </InfoSatir>
-        )}
         {!oncesiRaporVar && dogumTarihi && (
           <InfoSatir renk="#b45309">
             Doğum öncesi raporu yok → Doğum sonrası yalnızca <b>112 gün</b> ödenir.
@@ -345,7 +338,7 @@ export default function AnalikHesap({ onChange }: Props) {
       </DonemKart>
 
       {/* ── Dönem özeti ve satırlar ── */}
-      {oncesiRaporVar && oncesiBaslangic && oncesiBitis && (
+      {oncesiRaporVar && oncesiBaslangic && oncesiBitis && oncesiGun > 0 && (
         <DonemKart renk="#7c3aed" baslik={`📋 Doğum Öncesi Dönem — ${fmt_tarih(oncesiBaslangic)} → ${dogumOncesiErken ? fmt_tarih(dogumTarihi) : fmt_tarih(oncesiBitis)} (${oncesiGun} gün)`}>
           {dogumOncesiErken && (
             <InfoSatir renk="#b45309">
