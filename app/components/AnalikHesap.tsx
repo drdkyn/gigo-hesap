@@ -79,13 +79,13 @@ export default function AnalikHesap({ onChange }: Props) {
 
   // ── Hesapla ───────────────────────────────────────────
   useEffect(() => {
-    // Doğum öncesi raporu yok → sadece doğum sonrası
+    // Doğum öncesi raporu yok → sadece 112 gün doğum sonrası
     if (!oncesiRaporVar) {
       setOncesiBaslangic(""); setOncesiBitis("");
       setAktarilanGun(0); setErkenGun(0);
       if (dogumTarihi) {
         const sBas = dogumTarihi;
-        const sBit = addDays(dogumTarihi, 167); // 168 gün
+        const sBit = addDays(dogumTarihi, 111); // 112 gün
         setSonrasiBaslangic(sBas);
         setSonrasiBitis(sBit);
         setSonrasiSatirlar([yeniDonemSatir(sBas, sBit, "ayakta")]);
@@ -163,7 +163,7 @@ export default function AnalikHesap({ onChange }: Props) {
       onChange({
         oncesiBaslangic: "", oncesiBitis: "", oncesiGun: 0,
         sonrasiBaslangic, sonrasiBitis,
-        sonrasiGun: sonrasiBitis ? Math.min(gunFarki(sonrasiBaslangic, sonrasiBitis), 168) : 0,
+        sonrasiGun: sonrasiBitis ? Math.min(gunFarki(sonrasiBaslangic, sonrasiBitis), 112) : 0,
         toplamGun: 0, aktarilanGun: 0, erkenDogumEkGun: 0,
         oncesiSatirlar: [], sonrasiSatirlar,
       });
@@ -315,19 +315,6 @@ export default function AnalikHesap({ onChange }: Props) {
 
       {/* ── Doğum Tarihi ── */}
       <DonemKart renk="#b45309" baslik="👶 Doğum Tarihi">
-        {/* Radio tekrarı - Doğum Tarihi kartında da göster */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, fontWeight: oncesiRaporVar ? 700 : 500 }}>
-            <input type="radio" name="oncesiDurum" checked={oncesiRaporVar}
-              onChange={() => setOncesiRaporVar(true)} />
-            Doğum Öncesi Raporu Var
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, fontWeight: !oncesiRaporVar ? 700 : 500, color: !oncesiRaporVar ? "#b91c1c" : "inherit" }}>
-            <input type="radio" name="oncesiDurum" checked={!oncesiRaporVar}
-              onChange={() => setOncesiRaporVar(false)} />
-            Doğum Öncesi Raporu Yok
-          </label>
-        </div>
         <div>
           <label style={lb}>Doğum Tarihi</label>
           <input type="date" value={dogumTarihi}
@@ -340,7 +327,7 @@ export default function AnalikHesap({ onChange }: Props) {
         )}
         {!oncesiRaporVar && dogumTarihi && (
           <InfoSatir renk="#b45309">
-            Doğum öncesi raporu yok → Doğum sonrası <b>168 güne kadar</b> ödenebilir.
+            Doğum öncesi raporu yok → Doğum sonrası yalnızca <b>112 gün</b> ödenir.
           </InfoSatir>
         )}
       </DonemKart>
