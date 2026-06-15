@@ -393,75 +393,73 @@ export default function HesaplamaFormu() {
                 </div>
               )}
 
-              {/* Satırlar - her biri tek satır */}
+              {/* Satırlar */}
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {satirlar.map((s, idx) => (
                   <div key={s.id} style={{
                     background: s.tur === "yatarak" ? "#f0f4fa" : "#f0fdf4",
                     border: `1.5px solid ${s.tur === "yatarak" ? "#bfdbfe" : "#86efac"}`,
                     borderRadius: 7, padding: "5px 8px",
-                    display: "flex", alignItems: "center", gap: 5,
                   }}>
-                    {/* Numara */}
-                    <span style={{ fontSize: 10, color: "var(--muted)", minWidth: 12, flexShrink: 0 }}>{idx + 1}.</span>
-
-                    {/* Gün/tarih giriş - ÖNCE */}
                     {tarihMod === "gun" ? (
-                      <input
-                        type="number" min={1}
-                        value={s.gun ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          updateSatir(s.id, "gun", v === "" ? null : Math.max(1, parseInt(v) || 1));
-                        }}
-                        className="gun-input"
-                        style={{ ...inp, width: 72, fontSize: 13, fontWeight: 700, textAlign: "center", padding: "4px 5px", flexShrink: 0 }}
-                        placeholder="Gün" />
-                    ) : (
-                      <div style={{ display: "flex", gap: 4, flex: 1, minWidth: 0, alignItems: "center" }}>
-                        <input type="date" value={s.baslangic}
-                          onChange={(e) => { updateSatir(s.id, "baslangic", e.target.value); handleBaslangicChange(e.target.value); }}
-                          style={{ ...inp, padding: "4px 5px", fontSize: 11, minWidth: 0 }} />
-                        <span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0 }}>→</span>
-                        <input type="date" value={s.bitis} min={s.baslangic}
-                          onChange={(e) => updateSatir(s.id, "bitis", e.target.value)}
-                          style={{ ...inp, padding: "4px 5px", fontSize: 11, minWidth: 0 }} />
-                        {s.baslangic && s.bitis && (
-                          <span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0, whiteSpace: "nowrap" }}>
-                            {gunFarki(s.baslangic, s.bitis)}g
-                          </span>
+                      /* GÜN MODU: tek satır */
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <span style={{ fontSize: 10, color: "var(--muted)", minWidth: 12, flexShrink: 0 }}>{idx + 1}.</span>
+                        <input
+                          type="number" min={1} value={s.gun ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            updateSatir(s.id, "gun", v === "" ? null : Math.max(1, parseInt(v) || 1));
+                          }}
+                          className="gun-input"
+                          style={{ ...inp, width: 72, fontSize: 13, fontWeight: 700, textAlign: "center", padding: "4px 5px", flexShrink: 0 }}
+                          placeholder="Gün" />
+                        <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                          <TogBtn aktif={s.tur === "ayakta"} renk="var(--green)" onClick={() => updateSatir(s.id, "tur", "ayakta")} kucuk>Ayakta</TogBtn>
+                          <TogBtn aktif={s.tur === "yatarak"} renk="var(--blue)" onClick={() => updateSatir(s.id, "tur", "yatarak")} kucuk>Yatarak</TogBtn>
+                        </div>
+                        {raporTuru === "analik" && (
+                          <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                            <TogBtn aktif={s.donemTip === "oncesi"} renk="#7c3aed" onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "oncesi" ? null : "oncesi")} kucuk>D.Önc.</TogBtn>
+                            <TogBtn aktif={s.donemTip === "sonrasi"} renk="#b45309" onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "sonrasi" ? null : "sonrasi")} kucuk>D.Son.</TogBtn>
+                          </div>
+                        )}
+                        {satirlar.length > 1 && (
+                          <button onClick={() => removeSatir(s.id)} style={{ background: "#fee2e2", color: "#b91c1c", border: "none", borderRadius: 5, padding: "2px 6px", fontSize: 10, cursor: "pointer", flexShrink: 0 }}>✕</button>
                         )}
                       </div>
-                    )}
-
-                    {/* Tür seçimi - SONRA */}
-                    <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
-                      <TogBtn aktif={s.tur === "ayakta"} renk="var(--green)"
-                        onClick={() => updateSatir(s.id, "tur", "ayakta")} kucuk>Ayakta</TogBtn>
-                      <TogBtn aktif={s.tur === "yatarak"} renk="var(--blue)"
-                        onClick={() => updateSatir(s.id, "tur", "yatarak")} kucuk>Yatarak</TogBtn>
-                    </div>
-
-                    {/* Analık: Doğum öncesi / sonrası */}
-                    {raporTuru === "analik" && (
-                      <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
-                        <TogBtn aktif={s.donemTip === "oncesi"} renk="#7c3aed"
-                          onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "oncesi" ? null : "oncesi")} kucuk>
-                          D.Öncesi
-                        </TogBtn>
-                        <TogBtn aktif={s.donemTip === "sonrasi"} renk="#b45309"
-                          onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "sonrasi" ? null : "sonrasi")} kucuk>
-                          D.Sonrası
-                        </TogBtn>
+                    ) : (
+                      /* TARİH MODU: üstte tarihler, altta butonlar */
+                      <div>
+                        {/* Üst satır: numara + tarihler + sil */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                          <span style={{ fontSize: 10, color: "var(--muted)", minWidth: 12, flexShrink: 0 }}>{idx + 1}.</span>
+                          <input type="date" value={s.baslangic}
+                            onChange={(e) => { updateSatir(s.id, "baslangic", e.target.value); handleBaslangicChange(e.target.value); }}
+                            style={{ ...inp, padding: "4px 6px", fontSize: 12, flex: 1, minWidth: 0 }} />
+                          <span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0 }}>→</span>
+                          <input type="date" value={s.bitis} min={s.baslangic}
+                            onChange={(e) => updateSatir(s.id, "bitis", e.target.value)}
+                            style={{ ...inp, padding: "4px 6px", fontSize: 12, flex: 1, minWidth: 0 }} />
+                          {s.baslangic && s.bitis && (
+                            <span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0, whiteSpace: "nowrap" }}>{gunFarki(s.baslangic, s.bitis)}g</span>
+                          )}
+                          {satirlar.length > 1 && (
+                            <button onClick={() => removeSatir(s.id)} style={{ background: "#fee2e2", color: "#b91c1c", border: "none", borderRadius: 5, padding: "2px 5px", fontSize: 10, cursor: "pointer", flexShrink: 0 }}>✕</button>
+                          )}
+                        </div>
+                        {/* Alt satır: tür + analık dönem */}
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          <TogBtn aktif={s.tur === "ayakta"} renk="var(--green)" onClick={() => updateSatir(s.id, "tur", "ayakta")} kucuk>Ayakta</TogBtn>
+                          <TogBtn aktif={s.tur === "yatarak"} renk="var(--blue)" onClick={() => updateSatir(s.id, "tur", "yatarak")} kucuk>Yatarak</TogBtn>
+                          {raporTuru === "analik" && (
+                            <>
+                              <TogBtn aktif={s.donemTip === "oncesi"} renk="#7c3aed" onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "oncesi" ? null : "oncesi")} kucuk>D.Öncesi</TogBtn>
+                              <TogBtn aktif={s.donemTip === "sonrasi"} renk="#b45309" onClick={() => updateSatir(s.id, "donemTip", s.donemTip === "sonrasi" ? null : "sonrasi")} kucuk>D.Sonrası</TogBtn>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    )}
-
-                    {/* Sil */}
-                    {satirlar.length > 1 && (
-                      <button onClick={() => removeSatir(s.id)} style={{
-                        background: "#fee2e2", color: "#b91c1c", border: "none",
-                        borderRadius: 5, padding: "2px 6px", fontSize: 10, cursor: "pointer", flexShrink: 0,
-                      }}>✕</button>
                     )}
                   </div>
                 ))}
