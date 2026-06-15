@@ -28,15 +28,24 @@ body {
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
 
-/* ── MOBİL: normal scroll ───────────────────────────────── */
-.pc-grid { display: flex; flex-direction: column; gap: 6px; }
-.kart    { padding: 8px 10px; }
-.bolum-baslik { font-size: 12px; margin-bottom: 8px; }
-.tog-btn      { padding: 7px 5px; font-size: 12px; }
-.tog-btn-kucuk { padding: 4px 7px; font-size: 11px; }
-.bilgi-kutu  { padding: 6px 10px; font-size: 11px; margin-top: 6px; }
-.hesapla-btn { padding: 11px; font-size: 14px; }
-.gun-bilgi   { padding: 8px 12px; font-size: 12px; }
+/* ── MOBİL: sıkı düzen ─────────────────────────────────── */
+.pc-grid { display: flex; flex-direction: column; gap: 5px; }
+.kart    { padding: 7px 9px; }
+.bolum-baslik { font-size: 11px; margin-bottom: 6px; }
+.tog-btn      { padding: 5px 4px; font-size: 11px; line-height: 1.2; }
+.tog-btn-kucuk { padding: 3px 6px; font-size: 10px; }
+.bilgi-kutu  { padding: 5px 9px; font-size: 10px; margin-top: 5px; line-height: 1.4; }
+.hesapla-btn { padding: 10px; font-size: 13px; }
+.gun-bilgi   { padding: 7px 10px; font-size: 11px; margin-top: 6px; }
+
+/* Mobil header kompakt */
+@media (max-width: 899px) {
+  .site-header .header-ikon { width: 36px !important; height: 36px !important; font-size: 20px !important; }
+  .header-title { font-size: 14px !important; }
+  .header-sub   { font-size: 10px !important; }
+  .site-header > div { padding: 8px 12px !important; gap: 9px !important; }
+  .main-wrap { padding: 6px 10px 20px !important; }
+}
 
 /* ── PC: viewport'a tam sığan iki sütun ─────────────────── */
 @media (min-width: 900px) {

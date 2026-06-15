@@ -270,12 +270,12 @@ export default function HesaplamaFormu() {
         <div className="pc-grid">
 
           {/* ── SOL: Form ── */}
-          <div className="pc-left" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="pc-left" style={{ display: "flex", flexDirection: "column", gap: 5 }}>
 
             {/* ── 1. RAPOR TÜRÜ ── */}
             <Kart>
               <Baslik no="1" metin="Rapor Türü" />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5 }}>
                 <TogBtn aktif={raporTuru === "hastalik"} renk="var(--blue)"
                   onClick={() => { setRaporTuru("hastalik"); setSonuc(null); }}>
                   Hastalık
@@ -301,7 +301,7 @@ export default function HesaplamaFormu() {
               <Baslik no="2" metin="Rapor Süresi ve Şekli" />
 
               {/* Mod toggle - kompakt */}
-              <div className="mod-toggle" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: "1.5px solid var(--border)", borderRadius: 7, overflow: "hidden", marginBottom: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: "1.5px solid var(--border)", borderRadius: 7, overflow: "hidden", marginBottom: 6 }}>
                 <button onClick={() => { setTarihMod("gun"); setSonuc(null); }} style={{
                   padding: "7px 4px", border: "none", cursor: "pointer", fontSize: 12,
                   fontWeight: tarihMod === "gun" ? 700 : 500,
@@ -329,7 +329,7 @@ export default function HesaplamaFormu() {
               )}
 
               {/* Satırlar - her biri tek satır */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {satirlar.map((s, idx) => (
                   <div key={s.id} style={{
                     background: s.tur === "yatarak" ? "#f0f4fa" : "#f0fdf4",
@@ -415,7 +415,7 @@ export default function HesaplamaFormu() {
 
               {/* Anlık özet chips */}
               {toplamRaporGun > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
                   <Chip renk="var(--blue)" etiket="Toplam Rapor" deger={`${toplamRaporGun} gün`} />
                   {tarihMod === "tarih" && <Chip renk="#475569" etiket="Bitiş" deger={raporBitis} />}
                   <Chip renk={onikiAyGun >= 90 ? "var(--green)" : "var(--red)"} etiket="12 Ay Prim" deger={`${onikiAyGun} gün`} />
