@@ -259,7 +259,10 @@ export default function AnalikHesap({ onChange }: Props) {
   const oncesiGun = oncesiBaslangic && oncesiBitis && oncesiBitis >= oncesiBaslangic
     ? gunFarki(oncesiBaslangic, oncesiBitis) : 0;
   const sonrasiGun = sonrasiBaslangic && sonrasiBitis ? gunFarki(sonrasiBaslangic, sonrasiBitis) : 0;
-  const sonrasiMax = Math.min(112 + aktarilanGun + erkenGun, 168);
+  // Sonrası max: 112 + aktarılan + erken (168 dahil), geç aşım ayrı sayılır
+  const sonrasiMaxIcindeOdenen = Math.min(112 + aktarilanGun + erkenGun, 168);
+  // Ama tarih hesabında gecAsim da ekleniyor, o yüzden uyarı için toplam kontrol
+  const sonrasiMax = sonrasiMaxIcindeOdenen + gecAsimGun;
   const oncesiAsim = oncesiGun > 56;
   const sonrasiAsim = false;
   const toplamAsim = (oncesiGun + sonrasiGun) > 168;
@@ -416,7 +419,7 @@ export default function AnalikHesap({ onChange }: Props) {
                   16 hafta (112 gün)
                   {aktarilanGun > 0 && <> + <b>{aktarilanGun} aktarılan gün</b> (ödenecek)</>}
                   {erkenGun > 0 && <> + <b>{erkenGun} erken doğum günü</b> (ödenecek)</>}
-                  {" "}= <b>{Math.min(sonrasiGun - gecAsimGun, sonrasiMax)} gün</b> (168 içinde ödenir)
+                  {" "}= <b>{Math.min(sonrasiGun - gecAsimGun, Math.min(112 + aktarilanGun + erkenGun, 168))} gün</b> (168 içinde ödenir)
                   {gecAsimVar && <><br/>+ <b>{gecAsimGun + 2} geç doğum günü</b> (ilk 2 ödenmez, <b>{gecAsimGun} gün</b> 168 dışında ödenir)</>}
                 </>
               ) : (
