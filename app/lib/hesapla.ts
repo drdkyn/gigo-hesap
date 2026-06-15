@@ -118,7 +118,11 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
         kullanılanRaporGun = hesaplananMax;
         analikHaftaAsimi = true;
         adimlar.push(`⚠️ Analık max: D.Öncesi ${oncesiKesik}/56 gün + D.Sonrası ${sonrasiKesik} gün = ${hesaplananMax} gün (rapor: ${toplamRaporGun} gün)`);
-        uyarilar.push({ tip: "uyari", mesaj: `Analık raporu sınırı aşıldı. Hesaplama ${hesaplananMax} gün üzerinden yapılmaktadır.` });
+        const gecAsimGun = input.gecAsimGun ?? 0;
+        const uyariMetni = gecAsimGun > 0 
+          ? `Analık raporu sınırı aşıldı. Hesaplama ${hesaplananMax} gün üzerinden yapılmaktadır. Geç doğum nedeni ile ${gecAsimGun} gün ek ödeme yapılacaktır.`
+          : `Analık raporu sınırı aşıldı. Hesaplama ${hesaplananMax} gün üzerinden yapılmaktadır.`;
+        uyarilar.push({ tip: "uyari", mesaj: uyariMetni });
       } else {
         kullanılanRaporGun = toplamRaporGun;
       }
@@ -313,9 +317,9 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
 
   const toplamOdenek = ayaktaToplamOdenek + yatarakToplamOdenek;
   
-  // Geç doğum aşımı tutarı (168 dışında ödenen kısım)
+  // Geç doğum aşımı tutarı (hastalık raporu gibi 2/3 uygulanır)
   const gecAsimGun = input.gecAsimGun ?? 0;
-  const gecAsimTutar = gecAsimGun > 0 ? gunlukKazancEsas * gecAsimGun : 0;
+  const gecAsimTutar = gecAsimGun > 0 ? (gunlukKazancEsas * gecAsimGun * 2) / 3 : 0;
   
   adimlar.push(`TOPLAM ÖDENEK: ${fmt(toplamOdenek)} ₺`);
   if (gecAsimTutar > 0) {

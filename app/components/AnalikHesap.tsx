@@ -163,7 +163,8 @@ export default function AnalikHesap({ onChange }: Props) {
       const sBas = dogumTarihi;
       // 112 + aktarılan + erken gün (168 sınırına dahil) — gecAsim dahil ETMİ
       const sonrasiToplamGun = 112 + aktGun + erken;
-      const sBit = addDays(dogumTarihi, sonrasiToplamGun);
+      // gunFarki inclusive olduğu için -1 ekle
+      const sBit = addDays(dogumTarihi, sonrasiToplamGun - 1);
       setSonrasiBaslangic(sBas);
       setSonrasiBitis(sBit);
       setOncesiSatirlar([yeniDonemSatir(oBas, oBit || oBas, "ayakta")]);
