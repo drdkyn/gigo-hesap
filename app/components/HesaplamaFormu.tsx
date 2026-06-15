@@ -5,6 +5,7 @@ import {
   hesapla, HesaplaResult, AyKazanc, RaporTuru, TedaviTuru, KarmaDonem
 } from "../lib/hesapla";
 import { getAsgariUcret, getGunlukAsgariUcret } from "../lib/asgariUcret";
+import AnalikHesap, { AnalikSonuc } from "./AnalikHesap";
 
 /* ── Yardımcılar ─────────────────────────────────────── */
 function getOnceki12Ay(baslangicStr: string): string[] {
@@ -120,6 +121,7 @@ export default function HesaplamaFormu() {
 
   const [sonuc, setSonuc] = useState<HesaplaResult | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  const [analikSonuc, setAnalikSonuc] = useState<AnalikSonuc | null>(null);
 
   /* Satır işlemleri */
   const updateSatir = (id: number, field: keyof RaporSatir, val: string | number | null) => {
@@ -228,36 +230,61 @@ export default function HesaplamaFormu() {
       setHata("12 ay toplam prim günü sıfır olamaz."); return;
     }
 
-    // Karma dönemler
-    // Tarih modunda: gerçek tarihlerle
-    // Gün modunda: satır sırasını koruyarak yapay tarih oluştur (bugünden itibaren birikimli)
+    // Analık + tarih modunda AnalikSonuc'tan değerleri al
+    let analikOncesiGunHesap = analikOncesiGun;
+    let analikSonrasiGunHesap = analikSonrasiGun;
     let karmaDon: KarmaDonem[] | undefined = undefined;
     let yatarakGunSayisi: number | undefined = undefined;
+    let hesapBaslangic = raporBaslangic;
+    let hesapBitis = raporBitis;
 
-    if (tedaviTuru === "karma") {
-      if (tarihMod === "tarih") {
-        karmaDon = gecerli.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur }));
-      } else {
-        // Gün modunda: satır sırasını koruyarak biriktir
-        let offset = 0;
-        karmaDon = gecerli.map(s => {
-          const bas = addDays(bugun, offset);
-          const bit = addDays(bugun, offset + (s.gun ?? 1) - 1);
-          offset += (s.gun ?? 1);
-          return { baslangic: bas, bitis: bit, tur: s.tur };
-        });
-        yatarakGunSayisi = gecerli.filter(s => s.tur === "yatarak").reduce((sum, s) => sum + (s.gun ?? 0), 0);
+    if (raporTuru === "analik" && tarihMod === "tarih" && analikSonuc) {
+      // AnalikHesap bileşeninden gelen tüm satırları karma dönem olarak kullan
+      const tumSatirlar = [
+        ...analikSonuc.oncesiSatirlar.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak" })),
+        ...analikSonuc.sonrasiSatirlar.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak" })),
+      ].filter(s => s.baslangic && s.bitis);
+
+      if (tumSatirlar.length === 0) {
+        setHata("Analık raporu tarih bilgileri eksik."); return;
+      }
+
+      const turlerSet = new Set(tumSatirlar.map(s => s.tur));
+      if (turlerSet.size > 1) {
+        karmaDon = tumSatirlar;
+      }
+
+      hesapBaslangic = analikSonuc.oncesiBaslangic || analikSonuc.sonrasiBaslangic;
+      hesapBitis = analikSonuc.sonrasiBitis || analikSonuc.oncesiBitis;
+      analikOncesiGunHesap = Math.min(analikSonuc.oncesiGun, 56);
+      analikSonrasiGunHesap = Math.min(analikSonuc.sonrasiGun, analikSonuc.aktarilanGun === 0 ? 168 : 112);
+    } else {
+      // Normal karma hesap
+      if (tedaviTuru === "karma") {
+        if (tarihMod === "tarih") {
+          karmaDon = gecerli.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur }));
+        } else {
+          let offset = 0;
+          karmaDon = gecerli.map(s => {
+            const bas = addDays(bugun, offset);
+            const bit = addDays(bugun, offset + (s.gun ?? 1) - 1);
+            offset += (s.gun ?? 1);
+            return { baslangic: bas, bitis: bit, tur: s.tur };
+          });
+          yatarakGunSayisi = gecerli.filter(s => s.tur === "yatarak").reduce((sum, s) => sum + (s.gun ?? 0), 0);
+        }
       }
     }
 
     try {
       const r = hesapla({
-        raporTuru, tedaviTuru, raporBaslangic, raporBitis,
+        raporTuru, tedaviTuru: karmaDon ? "karma" : tedaviTuru,
+        raporBaslangic: hesapBaslangic, raporBitis: hesapBitis,
         karmaDonemleri: karmaDon,
         yatarakGun: tedaviTuru === "karma" && tarihMod === "gun" ? yatarakGunSayisi : undefined,
         ayKazanclar: kullanilacakAylar,
-        analikOncesiGun: raporTuru === "analik" ? analikOncesiGun : undefined,
-        analikSonrasiGun: raporTuru === "analik" ? analikSonrasiGun : undefined,
+        analikOncesiGun: raporTuru === "analik" ? analikOncesiGunHesap : undefined,
+        analikSonrasiGun: raporTuru === "analik" ? analikSonrasiGunHesap : undefined,
         emsalKazanc: emsalAktif ? emsalKazanc : undefined,
         emsalPrimGunu: emsalAktif ? emsalPrimGunu : undefined,
         normalMaasKazanc: normalMaasAktif ? normalMaaslar : undefined,
@@ -394,6 +421,11 @@ export default function HesaplamaFormu() {
                 </div>
               )}
 
+              {/* Analık + Tarih modu: özel hesap bileşeni */}
+              {raporTuru === "analik" && tarihMod === "tarih" ? (
+                <AnalikHesap onChange={setAnalikSonuc} />
+              ) : (
+              <>
               {/* Satırlar */}
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {satirlar.map((s, idx) => (
@@ -471,6 +503,8 @@ export default function HesaplamaFormu() {
                   padding: "5px", fontSize: 11, color: "var(--blue)", cursor: "pointer", fontWeight: 600,
                 }}>+ Yeni Rapor Satırı Ekle</button>
               </div>
+              </> /* analık tarih modu fragment kapanışı */
+              )}
 
               {/* Gün modu bilgi kutusu */}
               {tarihMod === "gun" && (
