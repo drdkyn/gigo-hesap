@@ -192,22 +192,33 @@ export default function HesaplamaFormu() {
   const handleHesapla = () => {
     setHata(null); setSonuc(null);
 
-    const gecerli = satirlar.filter(s =>
-      tarihMod === "gun" ? (s.gun ?? 0) > 0 : (s.baslangic && s.bitis)
-    );
-    if (gecerli.length === 0) {
-      setHata(tarihMod === "gun" ? "En az bir satıra gün sayısı giriniz." : "En az bir satıra tarih giriniz.");
-      return;
-    }
+    // Analık + tarih modunda satırlar AnalikHesap'tan geliyor, gecerli kontrolü atla
+    const analikTarihAktif = raporTuru === "analik" && tarihMod === "tarih";
 
-    // Tarih modunda bitiş < başlangıç kontrolü
-    if (tarihMod === "tarih") {
-      for (const s of gecerli) {
-        if (new Date(s.bitis) < new Date(s.baslangic)) {
-          setHata("Bir satırda bitiş tarihi başlangıçtan önce."); return;
+    if (!analikTarihAktif) {
+      const gecerli = satirlar.filter(s =>
+        tarihMod === "gun" ? (s.gun ?? 0) > 0 : (s.baslangic && s.bitis)
+      );
+      if (gecerli.length === 0) {
+        setHata(tarihMod === "gun" ? "En az bir satıra gün sayısı giriniz." : "En az bir satıra tarih giriniz.");
+        return;
+      }
+      if (tarihMod === "tarih") {
+        for (const s of gecerli) {
+          if (new Date(s.bitis) < new Date(s.baslangic)) {
+            setHata("Bir satırda bitiş tarihi başlangıçtan önce."); return;
+          }
         }
       }
     }
+
+    if (analikTarihAktif && !analikSonuc) {
+      setHata("Doğum öncesi bilgileri ve doğum tarihini giriniz."); return;
+    }
+
+    const gecerli = satirlar.filter(s =>
+      tarihMod === "gun" ? (s.gun ?? 0) > 0 : (s.baslangic && s.bitis)
+    );
 
     const kullanilacakAylar: AyKazanc[] = tarihMod === "gun"
       ? getOnceki12Ay(bugun).map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 }))
