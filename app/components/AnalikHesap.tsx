@@ -123,7 +123,16 @@ export default function AnalikHesap({ onChange }: Props) {
     }
 
     const oBas = istirahStart;
-    const oBit = dogumTarihi ? addDays(dogumTarihi, -1) : "";
+    // Çalışamaz: doğum öncesi max = 56 gün (kayıp haftaya göre az olabilir)
+    // Çalışır: doğum öncesi = rapor → istirahat başlangıcı (veya doğuma kadar)
+    let oBit = "";
+    if (!calisir) {
+      // Çalışamaz: doğum öncesi max 56 gün (veya kayıp haftaya göre az)
+      oBit = addDays(oBas, doğumOncesiMaxPotansiyel - 1); // -1 çünkü inclusive
+    } else if (dogumTarihi) {
+      // Çalışır: doğum öncesi = rapor → doğumdan önceki gün
+      oBit = addDays(dogumTarihi, -1);
+    }
 
     if (calisir && istirahStart > raporTarihi && dogumTarihi) {
       if (dogumTarihi <= istirahStart) {
