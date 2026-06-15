@@ -80,6 +80,7 @@ export interface HesaplaResult {
   ayaktaToplamOdenek: number;
   yatarakToplamOdenek: number;
   toplamOdenek: number;
+  gecAsimTutar: number; // geç doğum aşımı tutarı (168 dışında ödenir)
   gecAsimGun: number; // geç doğum aşımı (168 dışında ödenir)
   adimlar: string[];
   uyarilar: UyariMesaj[];
@@ -311,7 +312,15 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
   }
 
   const toplamOdenek = ayaktaToplamOdenek + yatarakToplamOdenek;
+  
+  // Geç doğum aşımı tutarı (168 dışında ödenen kısım)
+  const gecAsimGun = input.gecAsimGun ?? 0;
+  const gecAsimTutar = gecAsimGun > 0 ? gunlukKazancEsas * gecAsimGun : 0;
+  
   adimlar.push(`TOPLAM ÖDENEK: ${fmt(toplamOdenek)} ₺`);
+  if (gecAsimTutar > 0) {
+    adimlar.push(`Geç Doğum Aşımı (168 dışında): ${fmt(gecAsimTutar)} ₺`);
+  }
 
   return {
     toplamRaporGun,
@@ -341,7 +350,8 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
     ayaktaToplamOdenek,
     yatarakToplamOdenek,
     toplamOdenek,
-    gecAsimGun: input.gecAsimGun ?? 0,
+    gecAsimTutar,
+    gecAsimGun,
     adimlar,
     uyarilar,
   };

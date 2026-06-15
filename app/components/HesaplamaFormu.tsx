@@ -269,9 +269,9 @@ export default function HesaplamaFormu() {
       hesapBaslangic = analikSonuc.oncesiBaslangic || analikSonuc.sonrasiBaslangic;
       hesapBitis = analikSonuc.sonrasiBitis || analikSonuc.oncesiBitis;
       analikOncesiGunHesap = Math.min(analikSonuc.oncesiGun, 56);
-      // Sonrası: 112 + aktarılan + erken, toplam 168 aşılamaz
+      // Sonrası: 112 + aktarılan + erken, toplam 168 aşılamaz (geç aşım ayrı)
       const sonrasiMaxHesap = Math.min(112 + analikSonuc.aktarilanGun + analikSonuc.erkenDogumEkGun, 168);
-      analikSonrasiGunHesap = Math.min(analikSonuc.sonrasiGun, sonrasiMaxHesap);
+      analikSonrasiGunHesap = Math.min(analikSonuc.sonrasiGun - analikSonuc.gecAsimGun, sonrasiMaxHesap);
     } else {
       // Normal karma hesap
       if (tedaviTuru === "karma") {
@@ -778,7 +778,14 @@ export default function HesaplamaFormu() {
                   boxShadow: "0 4px 18px rgba(192,57,43,0.35)",
                 }}>
                   <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4, letterSpacing: 1, textTransform: "uppercase" }}>Toplam Ödenek</div>
-                  <div className="toplam-rakam" style={{ fontSize: 34, fontWeight: 900, letterSpacing: "-1px" }}>{fmt(sonuc.toplamOdenek)} ₺</div>
+                  <div className="toplam-rakam" style={{ fontSize: 34, fontWeight: 900, letterSpacing: "-1px" }}>
+                    {fmt(raporTuru === "analik" ? sonuc.toplamOdenek + sonuc.gecAsimTutar : sonuc.toplamOdenek)} ₺
+                  </div>
+                  {raporTuru === "analik" && (
+                    <div style={{ fontSize: 10, opacity: 0.8, marginTop: 4 }}>
+                      Analık: {fmt(sonuc.toplamOdenek)} ₺ {sonuc.gecAsimTutar > 0 && <>+ Aşım: {fmt(sonuc.gecAsimTutar)} ₺</>}
+                    </div>
+                  )}
                   {sonuc.ayaktaToplamOdenek > 0 && sonuc.yatarakToplamOdenek > 0 && (
                     <div style={{ fontSize: 11, opacity: 0.8, marginTop: 6, display: "flex", gap: 14, justifyContent: "center" }}>
                       <span>Ayakta: {fmt(sonuc.ayaktaToplamOdenek)} ₺</span>
@@ -801,7 +808,8 @@ export default function HesaplamaFormu() {
                     <SonKart icon="✅" etiket="Ödenecek Gün" deger={`${sonuc.odenenGun} gün`} renk="var(--green)" />
                   )}
                   {raporTuru === "analik" && sonuc.gecAsimGun > 0 && (
-                    <SonKart icon="⏰" etiket="Geç Doğum Aşımı" deger={`${sonuc.gecAsimGun} gün`} renk="#d97706" />
+                    <SonKart icon="⏰" etiket="Geç Doğum Aşımı" deger={`${fmt(sonuc.gecAsimTutar)} ₺`} renk="#d97706"
+                      alt={`${sonuc.gecAsimGun} gün (168 dışında)`} />
                   )}
                   <SonKart icon="📊" etiket="12 Ay Prim Günü" deger={`${sonuc.toplamOnikiAyPrimGun} gün`}
                     renk={sonuc.doksan_gun_sartiSaglandi ? "var(--green)" : "var(--red)"}
