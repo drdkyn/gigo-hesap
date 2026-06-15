@@ -271,10 +271,14 @@ export default function HesaplamaFormu() {
 
       hesapBaslangic = analikSonuc.oncesiBaslangic || analikSonuc.sonrasiBaslangic;
       hesapBitis = analikSonuc.sonrasiBitis || analikSonuc.oncesiBitis;
-      analikOncesiGunHesap = Math.min(analikSonuc.oncesiGun, 56);
+      
+      // Doğum öncesi/sonrası gün doğrudan AnalikHesap sonuçlarından al
+      analikOncesiGunHesap = analikSonuc.oncesiGun > 0 ? Math.min(analikSonuc.oncesiGun, 56) : 0;
       // Sonrası: 112 + aktarılan + erken, toplam 168 aşılamaz (geç aşım ayrı)
       const sonrasiMaxHesap = Math.min(112 + analikSonuc.aktarilanGun + analikSonuc.erkenDogumEkGun, 168);
-      analikSonrasiGunHesap = Math.min(analikSonuc.sonrasiGun - analikSonuc.gecAsimGun, sonrasiMaxHesap);
+      analikSonrasiGunHesap = analikSonuc.sonrasiGun > 0 
+        ? Math.min(analikSonuc.sonrasiGun - analikSonuc.gecAsimGun, sonrasiMaxHesap)
+        : 0;
     } else {
       // Normal karma hesap
       if (tedaviTuru === "karma") {
