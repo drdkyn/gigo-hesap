@@ -31,7 +31,7 @@ export interface HesaplaInput {
   // İş kazası/MH emsal kazanç
   emsalKazanc?: number;
   emsalPrimGunu?: number;
-  // Prim/ikramiye %150 tavan için normal maaş (ikramiye hariç)
+  // Prim/ikramiye %150 tavan için prime esas kazanç (ikramiye hariç)
   normalMaasKazanc?: number[];
   // Asgari ücretle mi dolduruldu?
   asgariDolu?: boolean;
