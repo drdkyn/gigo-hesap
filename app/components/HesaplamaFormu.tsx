@@ -474,6 +474,9 @@ export default function HesaplamaFormu() {
                 <BilgiKutu renk="kirmizi">⚠️ Son 12 ayda <b>{onikiAyGun} gün</b> prim var. Hak için <b>90 gün</b> gerekli.</BilgiKutu>
               )}
               {raporTuru === "analik" && toplamRaporGun > 168 && (
+                <BilgiKutu renk="kirmizi">⚠️ Analık raporu maksimum <b>168 gün (24 hafta)</b> olabilir. Girilen: <b>{toplamRaporGun} gün</b>. Hesaplama 168 gün üzerinden yapılacaktır.</BilgiKutu>
+              )}
+              {raporTuru === "analik" && toplamRaporGun > 168 && (
                 <BilgiKutu renk="kirmizi">⚠️ Analık raporu maksimum <b>24 hafta (168 gün)</b> olabilir. Girilen: <b>{toplamRaporGun} gün</b>. Hesaplama 168 gün üzerinden yapılır.</BilgiKutu>
               )}
             </Kart>
