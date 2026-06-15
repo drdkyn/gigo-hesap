@@ -264,6 +264,8 @@ export default function AnalikHesap({ onChange }: Props) {
   const dogumOncesiErken = oncesiRaporVar && dogumTarihi && oncesiBaslangic && dogumTarihi <= oncesiBaslangic;
   const gecAsimVar = gecAsimGun > 0;
   const tahminiDogum = raporTarihi && kacincuHafta ? addWeeks(raporTarihi, 40 - kacincuHafta) : "";
+  const kayipHafta = kacincuHafta ? Math.max(0, kacincuHafta - 32) : 0;
+  const doğumOncesiMaxPotansiyel = 56 - (kayipHafta * 7);
 
   // ── Render ────────────────────────────────────────────
   return (
