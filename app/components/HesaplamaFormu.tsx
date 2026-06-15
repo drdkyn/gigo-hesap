@@ -29,43 +29,81 @@ function gunFarki(a: string, b: string) {
   return Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000) + 1);
 }
 
-const RAPORT_LABELS: Record<RaporTuru, string> = {
-  hastalik: "Hastalık", iskazasi: "İş Kazası", meslekhastligi: "Meslek Hastalığı", analik: "Analık",
-};
-const TEDAVI_LABELS: Record<TedaviTuru, { k: string; oran: string }> = {
-  ayakta: { k: "Ayakta", oran: "2/3" },
-  yatarak: { k: "Yatarak", oran: "1/2" },
-  karma: { k: "Karma", oran: "Ayakta ve Yatarak" },
-};
+/* ── Yeni veri yapısı: rapor satırı ─────────────────── */
+interface RaporSatir {
+  id: number;
+  tur: "ayakta" | "yatarak";
+  // Gün modu
+  gun: number | null;
+  // Tarih modu
+  baslangic: string;
+  bitis: string;
+}
 
-/* ── Ana bileşen ─────────────────────────────────────── */
+let satirSayac = 3;
+function yeniSatir(bugun: string, tur: "ayakta" | "yatarak" = "ayakta"): RaporSatir {
+  return { id: satirSayac++, tur, gun: null, baslangic: bugun, bitis: bugun };
+}
+
 export default function HesaplamaFormu() {
   const bugun = new Date().toISOString().slice(0, 10);
 
+  // 1. Rapor türü
   const [raporTuru, setRaporTuru] = useState<RaporTuru>("hastalik");
-  const [tedaviTuru, setTedaviTuru] = useState<TedaviTuru>("ayakta");
-  const [tarihMod, setTarihMod] = useState<"tarih" | "gun">("gun");
+
+  // 2. Rapor süresi ve şekli
+  const [tarihMod, setTarihMod] = useState<"gun" | "tarih">("gun");
+  const [satirlar, setSatirlar] = useState<RaporSatir[]>([
+    { id: 1, tur: "ayakta", gun: null, baslangic: bugun, bitis: bugun },
+    { id: 2, tur: "ayakta", gun: null, baslangic: bugun, bitis: bugun },
+  ]);
+
+  // Hesaplama için türetilen değerler
   const [raporBaslangic, setRaporBaslangic] = useState(bugun);
   const [raporBitis, setRaporBitis] = useState(bugun);
-  const [raporGunSayisi, setRaporGunSayisi] = useState<number | null>(null);
+  const [tedaviTuru, setTedaviTuru] = useState<TedaviTuru>("ayakta");
+  const [karmaDonemleri, setKarmaDonemleri] = useState<KarmaDonem[]>([]);
 
+  // Satırlardan hesaplama parametrelerini türet
   useEffect(() => {
+    const gecerli = satirlar.filter(s =>
+      tarihMod === "gun" ? (s.gun ?? 0) > 0 : (s.baslangic && s.bitis)
+    );
+    if (gecerli.length === 0) return;
+
     if (tarihMod === "gun") {
+      // Toplam gün: satırlardaki gün toplamı, bugünden itibaren
+      const toplamGun = gecerli.reduce((s, r) => s + (r.gun ?? 0), 0);
       setRaporBaslangic(bugun);
-      if (raporGunSayisi !== null) {
-        setRaporBitis(addDays(bugun, raporGunSayisi - 1));
-      } else {
-        setRaporBitis(bugun);
+      setRaporBitis(addDays(bugun, toplamGun - 1));
+    } else {
+      // En erken başlangıç - en geç bitiş
+      const baslangiclar = gecerli.map(s => s.baslangic).sort();
+      const bitisler = gecerli.map(s => s.bitis).sort();
+      setRaporBaslangic(baslangiclar[0]);
+      setRaporBitis(bitisler[bitisler.length - 1]);
+    }
+
+    // Tedavi türü: tüm satırlar aynı ise o tür, karışıksa karma
+    const turler = new Set(gecerli.map(s => s.tur));
+    if (turler.size === 1) {
+      const tek = gecerli[0].tur;
+      setTedaviTuru(tek);
+      setKarmaDonemleri([]);
+    } else {
+      setTedaviTuru("karma");
+      if (tarihMod === "tarih") {
+        setKarmaDonemleri(gecerli.map(s => ({
+          baslangic: s.baslangic,
+          bitis: s.bitis,
+          tur: s.tur,
+        })));
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tarihMod, raporGunSayisi]);
+  }, [satirlar, tarihMod]);
 
-  const [karmaDonemleri, setKarmaDonemleri] = useState<KarmaDonem[]>([
-    { baslangic: bugun, bitis: bugun, tur: "yatarak" },
-    { baslangic: bugun, bitis: bugun, tur: "ayakta" },
-  ]);
-
+  // 3. Kazanç
   const [kazancMod, setKazancMod] = useState<"manuel" | "asgari">("manuel");
   const ayListesi = getOnceki12Ay(raporBaslangic);
   const [ayKazanclar, setAyKazanclar] = useState<AyKazanc[]>(() =>
@@ -81,54 +119,85 @@ export default function HesaplamaFormu() {
   const [sonuc, setSonuc] = useState<HesaplaResult | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
-  /* Handlers */
+  /* Satır işlemleri */
+  const updateSatir = (id: number, field: keyof RaporSatir, val: string | number | null) => {
+    setSatirlar(prev => prev.map(s => s.id === id ? { ...s, [field]: val } : s));
+    setSonuc(null);
+  };
+  const addSatir = () => {
+    setSatirlar(prev => [...prev, yeniSatir(bugun)]);
+    setSonuc(null);
+  };
+  const removeSatir = (id: number) => {
+    setSatirlar(prev => prev.length > 1 ? prev.filter(s => s.id !== id) : prev);
+    setSonuc(null);
+  };
+
+  /* Kazanç */
   const handleBaslangicChange = (val: string) => {
-    setRaporBaslangic(val); setSonuc(null);
     const yeniAylar = getOnceki12Ay(val);
     if (kazancMod === "asgari")
       setAyKazanclar(yeniAylar.map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 })));
     else
       setAyKazanclar((prev) => yeniAylar.map((ay) => prev.find((p) => p.ay === ay) ?? { ay, kazanc: 0, primGunu: 30 }));
   };
-  const handleGunChange = (val: number | null) => { setRaporGunSayisi(val); setSonuc(null); };
-  const handleBitisChange = (val: string) => {
-    setRaporBitis(val);
-    if (raporBaslangic && val) setRaporGunSayisi(gunFarki(raporBaslangic, val));
-    setSonuc(null);
-  };
   const doldurAsgariUcret = useCallback(() => {
-    const aylar = getOnceki12Ay(tarihMod === "gun" ? bugun : raporBaslangic);
+    const bazTarih = tarihMod === "gun" ? bugun : raporBaslangic;
+    const aylar = getOnceki12Ay(bazTarih);
     setAyKazanclar(aylar.map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 })));
     setKazancMod("asgari"); setSonuc(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raporBaslangic, tarihMod]);
-
   const manueleMod = () => { setKazancMod("manuel"); setSonuc(null); };
   const updateAy = (idx: number, field: "kazanc" | "primGunu", val: string) => {
     setAyKazanclar((prev) => { const k = [...prev]; k[idx] = { ...k[idx], [field]: field === "kazanc" ? parseFloat(val) || 0 : parseInt(val) || 0 }; return k; });
     setSonuc(null);
   };
-  const updateKarma = (idx: number, field: keyof KarmaDonem, val: string) => {
-    setKarmaDonemleri((prev) => { const k = [...prev]; k[idx] = { ...k[idx], [field]: val }; return k; }); setSonuc(null);
-  };
-  const addKarmaDonem = () => setKarmaDonemleri((prev) => [...prev, { baslangic: raporBitis, bitis: raporBitis, tur: "ayakta" }]);
-  const removeKarmaDonem = (idx: number) => setKarmaDonemleri((prev) => prev.filter((_, i) => i !== idx));
 
+  /* Hesapla */
   const handleHesapla = () => {
     setHata(null); setSonuc(null);
-    if (tarihMod === "tarih" && (!raporBaslangic || !raporBitis)) { setHata("Rapor tarihlerini giriniz."); return; }
-    if (tarihMod === "gun" && !raporGunSayisi) { setHata("Gün sayısı giriniz."); return; }
-    if (tarihMod === "tarih" && new Date(raporBitis) < new Date(raporBaslangic)) { setHata("Bitiş tarihi başlangıçtan önce olamaz."); return; }
+
+    const gecerli = satirlar.filter(s =>
+      tarihMod === "gun" ? (s.gun ?? 0) > 0 : (s.baslangic && s.bitis)
+    );
+    if (gecerli.length === 0) {
+      setHata(tarihMod === "gun" ? "En az bir satıra gün sayısı giriniz." : "En az bir satıra tarih giriniz.");
+      return;
+    }
+
+    // Tarih modunda bitiş < başlangıç kontrolü
+    if (tarihMod === "tarih") {
+      for (const s of gecerli) {
+        if (new Date(s.bitis) < new Date(s.baslangic)) {
+          setHata("Bir satırda bitiş tarihi başlangıçtan önce."); return;
+        }
+      }
+    }
+
     const kullanilacakAylar: AyKazanc[] = tarihMod === "gun"
       ? getOnceki12Ay(bugun).map((ay) => ({ ay, kazanc: getAsgariAy(ay), primGunu: 30 }))
       : ayKazanclar;
+
     if (tarihMod === "tarih" && kullanilacakAylar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0) === 0) {
       setHata("12 ay toplam prim günü sıfır olamaz."); return;
     }
+
+    // Karma dönemler (sadece tarih modunda anlamlı)
+    const karmaDon: KarmaDonem[] = tedaviTuru === "karma"
+      ? gecerli.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur }))
+      : [];
+
+    // Gün modunda yatarakGun hesapla
+    const yatarakGunSayisi = tedaviTuru === "karma"
+      ? gecerli.filter(s => s.tur === "yatarak").reduce((sum, s) => sum + (s.gun ?? 0), 0)
+      : undefined;
+
     try {
       const r = hesapla({
         raporTuru, tedaviTuru, raporBaslangic, raporBitis,
-        karmaDonemleri: tedaviTuru === "karma" ? karmaDonemleri : undefined,
+        karmaDonemleri: tedaviTuru === "karma" && tarihMod === "tarih" ? karmaDon : undefined,
+        yatarakGun: tedaviTuru === "karma" && tarihMod === "gun" ? yatarakGunSayisi : undefined,
         ayKazanclar: kullanilacakAylar,
         emsalKazanc: emsalAktif ? emsalKazanc : undefined,
         emsalPrimGunu: emsalAktif ? emsalPrimGunu : undefined,
@@ -143,14 +212,14 @@ export default function HesaplamaFormu() {
   const handleTemizle = () => {
     setSonuc(null); setHata(null); setKazancMod("manuel");
     setAyKazanclar(ayListesi.map((ay) => ({ ay, kazanc: 0, primGunu: 30 })));
-    setEmsalKazanc(0); setEmsalPrimGunu(1); setNormalMaaslar(Array(12).fill(0));
-    setRaporGunSayisi(null); setRaporBitis(raporBaslangic);
+    setSatirlar([
+      { id: 1, tur: "ayakta", gun: null, baslangic: bugun, bitis: bugun },
+      { id: 2, tur: "ayakta", gun: null, baslangic: bugun, bitis: bugun },
+    ]);
   };
 
   /* Anlık özetler */
-  const toplamRaporGun = tarihMod === "gun"
-    ? (raporGunSayisi ?? 0)
-    : (raporBaslangic && raporBitis ? gunFarki(raporBaslangic, raporBitis) : 0);
+  const toplamRaporGun = raporBaslangic && raporBitis ? gunFarki(raporBaslangic, raporBitis) : 0;
   const onikiAyGun = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
   const bazKazanc = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.kazanc, 0);
   const bazGun = ayKazanclar.slice(0, 12).reduce((s, a) => s + a.primGunu, 0);
@@ -188,182 +257,206 @@ export default function HesaplamaFormu() {
       <div className="main-wrap" style={{ maxWidth: 1400, margin: "0 auto", padding: "12px 14px 32px" }}>
         <div className="pc-grid">
 
-          {/* ── SOL / MOBİL TEK SÜTUN: Form ── */}
+          {/* ── SOL: Form ── */}
           <div className="pc-left" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-            {/* 1. Rapor Türü */}
+            {/* ── 1. RAPOR TÜRÜ ── */}
             <Kart>
               <Baslik no="1" metin="Rapor Türü" />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {(Object.keys(RAPORT_LABELS) as RaporTuru[]).map((t) => (
-                  <TogBtn key={t} aktif={raporTuru === t} renk="var(--blue)"
-                    onClick={() => { setRaporTuru(t); setSonuc(null); }}>
-                    {RAPORT_LABELS[t]}
-                  </TogBtn>
-                ))}
+              {/* Üst sıra: 3 buton yan yana */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+                <TogBtn aktif={raporTuru === "hastalik"} renk="var(--blue)"
+                  onClick={() => { setRaporTuru("hastalik"); setSonuc(null); }}>
+                  Hastalık
+                </TogBtn>
+                <TogBtn aktif={raporTuru === "analik"} renk="var(--blue)"
+                  onClick={() => { setRaporTuru("analik"); setSonuc(null); }}>
+                  Analık
+                </TogBtn>
+                <TogBtn aktif={isKazaMH} renk="var(--blue)"
+                  onClick={() => { setRaporTuru("iskazasi"); setSonuc(null); }}>
+                  İşkazası /<br />
+                  <span style={{ fontSize: 11 }}>Meslek Hst.</span>
+                </TogBtn>
               </div>
+
+              {/* İşkazası/MH seçilince alt seçenek */}
+              {isKazaMH && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
+                  <TogBtn aktif={raporTuru === "iskazasi"} renk="#475569" onClick={() => { setRaporTuru("iskazasi"); setSonuc(null); }} kucuk>
+                    İş Kazası
+                  </TogBtn>
+                  <TogBtn aktif={raporTuru === "meslekhastligi"} renk="#475569" onClick={() => { setRaporTuru("meslekhastligi"); setSonuc(null); }} kucuk>
+                    Meslek Hastalığı
+                  </TogBtn>
+                </div>
+              )}
+
               <BilgiKutu renk="mavi">
-                {raporTuru === "hastalik"      && <>Hastalık: son <b>12 ay</b> baz · ilk 2 gün ödenmez · 90 gün prim şartı</>}
-                {raporTuru === "iskazasi"      && <>İş Kazası: son <b>12 ay</b> baz · ilk günden ödeme · 90 gün şartı aranmaz</>}
-                {raporTuru === "meslekhastligi"&& <>Meslek Hastalığı: son <b>12 ay</b> baz · <b>ilk günden ödeme</b></>}
-                {raporTuru === "analik"        && <>Analık: son <b>12 ay</b> baz · ilk günden ödeme · max <b>24 hafta / 168 gün</b></>}
+                {raporTuru === "hastalik"       && <>Son 12 ay ortalaması baz alınır, ilk 2 gün ödenmez. 90 gün prim şartı var.</>}
+                {raporTuru === "analik"         && <>Son 12 ay ortalaması baz alınır, ilk günden ödeme. 90 gün prim şartı var. Max 24 hafta / 168 gün.</>}
+                {isKazaMH                       && <>Son 12 ay ortalaması baz alınır, 90 gün şartı aranmaz.</>}
               </BilgiKutu>
             </Kart>
 
-            {/* 2. Tedavi Türü */}
+            {/* ── 2. RAPOR SÜRESİ VE ŞEKLİ ── */}
             <Kart>
-              <Baslik no="2" metin="Tedavi Türü" />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                {(Object.keys(TEDAVI_LABELS) as TedaviTuru[]).map((t) => {
-                  const { k, oran } = TEDAVI_LABELS[t];
-                  return (
-                    <TogBtn key={t} aktif={tedaviTuru === t} renk="var(--green)"
-                      onClick={() => { setTedaviTuru(t); setSonuc(null); }}>
-                      {k}<br /><span style={{ fontSize: 11 }}>({oran})</span>
-                    </TogBtn>
-                  );
-                })}
-              </div>
-              {tedaviTuru === "karma" && (
-                <div style={{ marginTop: 14 }}>
-                  <BilgiKutu renk="sari">
-                    <b>Not:</b> Hastalık raporunda ilk 2 gün ödenmez. Dönemleri kronolojik sıraya göre giriniz.
-                  </BilgiKutu>
-                  <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-                    {karmaDonemleri.map((d, idx) => (
-                      <div key={idx} style={{
-                        background: d.tur === "yatarak" ? "#f0f4fa" : "#f0fdf4",
-                        border: `1px solid ${d.tur === "yatarak" ? "#bfdbfe" : "#86efac"}`,
-                        borderRadius: 8, padding: "10px 12px",
-                      }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 600 }}>Dönem {idx + 1}</span>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            <TogBtn aktif={d.tur === "yatarak"} renk="var(--blue)" onClick={() => updateKarma(idx, "tur", "yatarak")} kucuk>Yatarak (1/2)</TogBtn>
-                            <TogBtn aktif={d.tur === "ayakta"}  renk="var(--green)" onClick={() => updateKarma(idx, "tur", "ayakta")} kucuk>Ayakta (2/3)</TogBtn>
-                            {karmaDonemleri.length > 2 && (
-                              <button onClick={() => removeKarmaDonem(idx)} style={{ background: "#fee2e2", color: "#b91c1c", border: "none", borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer" }}>✕</button>
-                            )}
-                          </div>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                          <div><label style={lb}>Başlangıç</label>
-                            <input type="date" value={d.baslangic} min={raporBaslangic} max={raporBitis}
-                              onChange={(e) => updateKarma(idx, "baslangic", e.target.value)} style={inp} /></div>
-                          <div><label style={lb}>Bitiş</label>
-                            <input type="date" value={d.bitis} min={d.baslangic} max={raporBitis}
-                              onChange={(e) => updateKarma(idx, "bitis", e.target.value)} style={inp} /></div>
-                        </div>
-                        <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
-                          {d.baslangic && d.bitis ? `${gunFarki(d.baslangic, d.bitis)} gün` : "—"}
-                        </div>
-                      </div>
-                    ))}
-                    <button onClick={addKarmaDonem} style={{ background: "#f0f4fa", border: "1.5px dashed var(--border)", borderRadius: 8, padding: "8px", fontSize: 13, color: "var(--blue)", cursor: "pointer", fontWeight: 600 }}>
-                      + Dönem Ekle
-                    </button>
-                  </div>
-                </div>
-              )}
-            </Kart>
+              <Baslik no="2" metin="Rapor Süresi ve Şekli" />
 
-            {/* 3. Rapor Süresi */}
-            <Kart>
-              <Baslik no="3" metin="Rapor Süresi" />
-              <div className="mod-toggle" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
+              {/* Mod toggle */}
+              <div className="mod-toggle" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 12 }}>
                 <button onClick={() => { setTarihMod("gun"); setSonuc(null); }} style={{
-                  padding: "11px 6px", border: "none", cursor: "pointer", fontSize: 13,
+                  padding: "10px 6px", border: "none", cursor: "pointer", fontSize: 13,
                   fontWeight: tarihMod === "gun" ? 700 : 500,
                   background: tarihMod === "gun" ? "var(--blue)" : "#f8fafc",
                   color: tarihMod === "gun" ? "#fff" : "var(--muted)",
                   borderRight: "1px solid var(--border)",
                 }}>🔢 Gün Sayısı Gir</button>
                 <button onClick={() => { setTarihMod("tarih"); setSonuc(null); }} style={{
-                  padding: "11px 6px", border: "none", cursor: "pointer", fontSize: 13,
+                  padding: "10px 6px", border: "none", cursor: "pointer", fontSize: 13,
                   fontWeight: tarihMod === "tarih" ? 700 : 500,
                   background: tarihMod === "tarih" ? "var(--blue)" : "#f8fafc",
                   color: tarihMod === "tarih" ? "#fff" : "var(--muted)",
                 }}>📅 Tarih Gir</button>
               </div>
 
-              {tarihMod === "gun" ? (
-                <div>
-                  <label style={lb}>Rapor Gün Sayısı</label>
-                  <input
-                    type="number" min={1}
-                    value={raporGunSayisi ?? ""}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      handleGunChange(v === "" ? null : Math.max(1, parseInt(v) || 1));
-                    }}
-                    className="gun-input"
-                    style={{ ...inp, maxWidth: 180, fontSize: 22, fontWeight: 800, textAlign: "center" }}
-                    placeholder="Gün giriniz" />
-                  <div className="gun-bilgi" style={{ marginTop: 10, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "14px 16px", fontSize: 14, color: "#1e40af", lineHeight: 1.7 }}>
-                    ℹ️ <b>Güncel asgari ücrete (2026) göre hesaplanacaktır.</b><br />
-                    Detaylı hesap için <b>Tarih Gir</b> seçin.
+              {/* Satırlar */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {satirlar.map((s, idx) => (
+                  <div key={s.id} style={{
+                    background: s.tur === "yatarak" ? "#f0f4fa" : "#f0fdf4",
+                    border: `1.5px solid ${s.tur === "yatarak" ? "#bfdbfe" : "#86efac"}`,
+                    borderRadius: 9, padding: "10px 12px",
+                  }}>
+                    {/* Satır başlığı: numara + tür seçimi + sil */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: "var(--muted)", minWidth: 18 }}>{idx + 1}.</span>
+                      <div style={{ display: "flex", gap: 5, flex: 1 }}>
+                        <TogBtn aktif={s.tur === "ayakta"} renk="var(--green)"
+                          onClick={() => updateSatir(s.id, "tur", "ayakta")} kucuk>
+                          Ayakta (2/3)
+                        </TogBtn>
+                        <TogBtn aktif={s.tur === "yatarak"} renk="var(--blue)"
+                          onClick={() => updateSatir(s.id, "tur", "yatarak")} kucuk>
+                          Yatarak (1/2)
+                        </TogBtn>
+                      </div>
+                      {satirlar.length > 1 && (
+                        <button onClick={() => removeSatir(s.id)} style={{
+                          background: "#fee2e2", color: "#b91c1c", border: "none",
+                          borderRadius: 6, padding: "3px 8px", fontSize: 12, cursor: "pointer",
+                        }}>✕</button>
+                      )}
+                    </div>
+
+                    {/* Gün modu: tek input */}
+                    {tarihMod === "gun" ? (
+                      <div>
+                        <label style={lb}>Gün Sayısı</label>
+                        <input
+                          type="number" min={1}
+                          value={s.gun ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            updateSatir(s.id, "gun", v === "" ? null : Math.max(1, parseInt(v) || 1));
+                          }}
+                          className="gun-input"
+                          style={{ ...inp, maxWidth: 140, fontSize: 18, fontWeight: 700, textAlign: "center" }}
+                          placeholder="Gün" />
+                      </div>
+                    ) : (
+                      /* Tarih modu: başlangıç + bitiş */
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div>
+                          <label style={lb}>Başlangıç</label>
+                          <input type="date" value={s.baslangic}
+                            onChange={(e) => { updateSatir(s.id, "baslangic", e.target.value); handleBaslangicChange(e.target.value); }}
+                            style={inp} />
+                        </div>
+                        <div>
+                          <label style={lb}>Bitiş</label>
+                          <input type="date" value={s.bitis} min={s.baslangic}
+                            onChange={(e) => updateSatir(s.id, "bitis", e.target.value)}
+                            style={inp} />
+                        </div>
+                      </div>
+                    )}
+                    {/* Gün özeti */}
+                    {tarihMod === "tarih" && s.baslangic && s.bitis && (
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                        {gunFarki(s.baslangic, s.bitis)} gün
+                      </div>
+                    )}
                   </div>
-                </div>
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div><label style={lb}>Başlangıç Tarihi</label>
-                    <input type="date" value={raporBaslangic} onChange={(e) => handleBaslangicChange(e.target.value)} style={inp} /></div>
-                  <div><label style={lb}>Bitiş Tarihi</label>
-                    <input type="date" value={raporBitis} min={raporBaslangic} onChange={(e) => handleBitisChange(e.target.value)} style={inp} /></div>
+                ))}
+
+                {/* Yeni satır ekle */}
+                <button onClick={addSatir} style={{
+                  background: "#f8fafc", border: "1.5px dashed var(--border)", borderRadius: 8,
+                  padding: "9px", fontSize: 13, color: "var(--blue)", cursor: "pointer", fontWeight: 600,
+                }}>+ Yeni Rapor Satırı Ekle</button>
+              </div>
+
+              {/* Gün modu bilgi kutusu */}
+              {tarihMod === "gun" && (
+                <div className="gun-bilgi" style={{ marginTop: 10, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "12px 14px", fontSize: 13, color: "#1e40af", lineHeight: 1.7 }}>
+                  ℹ️ <b>Güncel asgari ücrete (2026) göre hesaplanacaktır.</b><br />
+                  Detaylı hesap için <b>Tarih Gir</b> seçin.
                 </div>
               )}
 
+              {/* Anlık özet chips */}
               {toplamRaporGun > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-                  <Chip renk="var(--blue)"  etiket="Rapor Günü" deger={`${toplamRaporGun} gün`} />
-                  {tarihMod === "tarih" && <Chip renk="#475569" etiket="Bitiş Tarihi" deger={raporBitis} />}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                  <Chip renk="var(--blue)" etiket="Toplam Rapor" deger={`${toplamRaporGun} gün`} />
+                  {tarihMod === "tarih" && <Chip renk="#475569" etiket="Bitiş" deger={raporBitis} />}
                   <Chip renk={onikiAyGun >= 90 ? "var(--green)" : "var(--red)"} etiket="12 Ay Prim" deger={`${onikiAyGun} gün`} />
                   {canliOrt > 0 && <Chip renk={canliOrt >= bitisAsgari ? "var(--green)" : "#d97706"} etiket="Günlük Ort." deger={`${fmt(canliOrt)} ₺`} />}
                 </div>
               )}
               {onikiAyGun > 0 && onikiAyGun < 90 && (
-                <BilgiKutu renk="kirmizi">⚠️ Son 12 ayda <b>{onikiAyGun} gün</b> prim var. Hak kazanmak için <b>90 gün</b> gerekli.</BilgiKutu>
+                <BilgiKutu renk="kirmizi">⚠️ Son 12 ayda <b>{onikiAyGun} gün</b> prim var. Hak için <b>90 gün</b> gerekli.</BilgiKutu>
               )}
             </Kart>
 
-            {/* 4. Kazanç Tablosu — sadece tarih modunda */}
+            {/* ── 3. Kazanç Tablosu — sadece tarih modunda ── */}
             {tarihMod === "tarih" && <Kart>
-              <Baslik no="4" metin="Son 12 Ay Prime Esas Kazanç" />
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+              <Baslik no="3" metin="Son 12 Ay Prime Esas Kazanç" />
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
                 <button onClick={doldurAsgariUcret} style={eylemBtn("var(--blue)")}>📋 Asgari Ücretle Doldur</button>
                 {kazancMod === "asgari" && <button onClick={manueleMod} style={eylemBtn("#64748b")}>✏️ Manuel Düzenle</button>}
                 <button onClick={handleTemizle} style={eylemBtn("#9ca3af")}>🗑️ Sıfırla</button>
               </div>
 
               {kazancMod === "asgari" ? (
-                <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "12px 14px" }}>
-                  <div style={{ fontWeight: 700, color: "var(--green)", marginBottom: 8, fontSize: 13 }}>✓ Güncel asgari ücrete göre dolduruldu (prim gün: 30)</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "10px 12px" }}>
+                  <div style={{ fontWeight: 700, color: "var(--green)", marginBottom: 6, fontSize: 12 }}>✓ Güncel asgari ücrete göre dolduruldu (prim gün: 30)</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                     {ayKazanclar.map((a) => (
-                      <div key={a.ay} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#374151" }}>
+                      <div key={a.ay} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#374151" }}>
                         <span>{ayEtiket(a.ay)}</span>
                         <span style={{ fontWeight: 600 }}>{fmt(a.kazanc)} ₺ / {a.primGunu} gün</span>
                       </div>
                     ))}
                   </div>
-                  <div style={{ borderTop: "1px solid #86efac", marginTop: 10, paddingTop: 8, display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 13, color: "var(--green)" }}>
+                  <div style={{ borderTop: "1px solid #86efac", marginTop: 8, paddingTop: 6, display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 12, color: "var(--green)" }}>
                     <span>Toplam</span>
                     <span>{fmt(bazKazanc)} ₺ / {bazGun} gün → {fmt(canliOrt)} ₺/gün</span>
                   </div>
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 6, padding: "0 2px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 5, padding: "0 2px" }}>
                     <span style={th}>Ay</span><span style={th}>Brüt Kazanç (₺)</span><span style={th}>Prim Gün</span>
                   </div>
                   {ayKazanclar.map((a, idx) => {
                     const ayAsgari = getAsgariAy(a.ay);
                     const altSinir = a.kazanc > 0 && a.kazanc < ayAsgari;
                     return (
-                      <div key={a.ay} style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 6, background: idx % 2 === 0 ? "#fff" : "#f9fbff", borderRadius: 6, padding: "4px 2px", border: "1px solid #f0f4fa" }}>
+                      <div key={a.ay} style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 5, background: idx % 2 === 0 ? "#fff" : "#f9fbff", borderRadius: 6, padding: "3px 2px", border: "1px solid #f0f4fa" }}>
                         <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", paddingLeft: 2 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600 }}>{ayEtiket(a.ay)}</span>
-                          <span style={{ fontSize: 10, color: "var(--muted)" }}>Asg: {fmt(ayAsgari)} ₺</span>
+                          <span style={{ fontSize: 11, fontWeight: 600 }}>{ayEtiket(a.ay)}</span>
+                          <span style={{ fontSize: 9, color: "var(--muted)" }}>Asg: {fmt(ayAsgari)} ₺</span>
                         </div>
                         <input type="number" min={0} step={0.01} value={a.kazanc || ""} placeholder="0,00"
                           onChange={(e) => updateAy(idx, "kazanc", e.target.value)}
@@ -373,8 +466,8 @@ export default function HesaplamaFormu() {
                       </div>
                     );
                   })}
-                  <div style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 6, background: "#e8f0fa", borderRadius: 6, padding: "7px 2px", fontWeight: 700, fontSize: 13 }}>
-                    <span style={{ color: "var(--blue)", paddingLeft: 2, fontSize: 12, display: "flex", alignItems: "center" }}>Toplam</span>
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 2.5fr 1.2fr", gap: 5, background: "#e8f0fa", borderRadius: 6, padding: "6px 2px", fontWeight: 700, fontSize: 12 }}>
+                    <span style={{ color: "var(--blue)", paddingLeft: 2, display: "flex", alignItems: "center" }}>Toplam</span>
                     <span style={{ color: "var(--blue)" }}>{fmt(bazKazanc)} ₺</span>
                     <span style={{ color: "var(--blue)" }}>{bazGun}</span>
                   </div>
@@ -382,17 +475,17 @@ export default function HesaplamaFormu() {
               )}
             </Kart>}
 
-            {/* 5. Emsal Kazanç */}
+            {/* ── 4. Emsal Kazanç ── */}
             {isKazaMH && (
               <Kart>
-                <Baslik no="5" metin="Emsal Kazanç (İsteğe Bağlı)" />
-                <BilgiKutu renk="sari">Kaza/tanı tarihinden önce o ayda hiç çalışma yoksa veya aynı gün kaza geçirildiyse emsal kazanç esas alınır.</BilgiKutu>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, marginTop: 10 }}>
+                <Baslik no="4" metin="Emsal Kazanç (İsteğe Bağlı)" />
+                <BilgiKutu renk="sari">Kaza/tanı tarihinden önce o ayda hiç çalışma yoksa emsal kazanç esas alınır.</BilgiKutu>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, marginTop: 8 }}>
                   <input type="checkbox" checked={emsalAktif} onChange={(e) => setEmsalAktif(e.target.checked)} />
                   Emsal kazanç uygulansın
                 </label>
                 {emsalAktif && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 10 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
                     <div><label style={lb}>Emsal Kazanç (₺)</label>
                       <input type="number" min={0} value={emsalKazanc || ""} placeholder="0,00" onChange={(e) => setEmsalKazanc(parseFloat(e.target.value) || 0)} style={inp} /></div>
                     <div><label style={lb}>Çalışılan Gün</label>
@@ -402,21 +495,21 @@ export default function HesaplamaFormu() {
               </Kart>
             )}
 
-            {/* 6. Prim/İkramiye Tavan */}
+            {/* ── 5. Prim/İkramiye Tavan ── */}
             <Kart>
-              <Baslik no={isKazaMH ? "6" : "5"} metin="Prim / İkramiye Tavan Kontrolü (İsteğe Bağlı)" />
-              <BilgiKutu renk="mor">Kazanca prim/ikramiye eklendiyse toplam, <b>normal maaş ortalamasının %150'sini</b> geçemez.</BilgiKutu>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, marginTop: 10 }}>
+              <Baslik no={isKazaMH ? "5" : "4"} metin="Prim / İkramiye Tavan Kontrolü (İsteğe Bağlı)" />
+              <BilgiKutu renk="mor">Prim/ikramiye dahilse toplam <b>normal maaş ortalamasının %150'sini</b> geçemez.</BilgiKutu>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, marginTop: 8 }}>
                 <input type="checkbox" checked={normalMaasAktif} onChange={(e) => setNormalMaasAktif(e.target.checked)} />
                 %150 tavan kontrolü uygulansın
               </label>
               {normalMaasAktif && (
-                <div style={{ marginTop: 12 }}>
-                  <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--muted)" }}>Her ay için normal maaş (prim/ikramiye hariç) brüt:</p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <div style={{ marginTop: 10 }}>
+                  <p style={{ margin: "0 0 6px", fontSize: 11, color: "var(--muted)" }}>Her ay için normal maaş (prim/ikramiye hariç) brüt:</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     {ayKazanclar.slice(0, 12).map((a, idx) => (
                       <div key={a.ay} style={{ display: "grid", gridTemplateColumns: "2fr 2fr", gap: 8, alignItems: "center" }}>
-                        <span style={{ fontSize: 12, color: "#475569" }}>{ayEtiket(a.ay)}</span>
+                        <span style={{ fontSize: 11, color: "#475569" }}>{ayEtiket(a.ay)}</span>
                         <input type="number" min={0} value={normalMaaslar[idx] || ""} placeholder="Normal maaş"
                           onChange={(e) => { const k = [...normalMaaslar]; k[idx] = parseFloat(e.target.value) || 0; setNormalMaaslar(k); }} style={tabloInp} />
                       </div>
@@ -428,10 +521,10 @@ export default function HesaplamaFormu() {
 
             {/* Hata */}
             {hata && (
-              <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "12px 14px", color: "#b91c1c", fontSize: 13 }}>❌ {hata}</div>
+              <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", color: "#b91c1c", fontSize: 13 }}>❌ {hata}</div>
             )}
 
-            {/* Hesapla butonu */}
+            {/* Hesapla */}
             <button onClick={handleHesapla} className="hesapla-btn" style={{
               width: "100%", background: "linear-gradient(135deg, #1a4b8c, #0f3060)",
               color: "#fff", border: "none", borderRadius: 10,
@@ -439,12 +532,10 @@ export default function HesaplamaFormu() {
               boxShadow: "0 4px 14px rgba(26,75,140,0.4)",
             }}>🧮 Hesapla</button>
 
-          </div>{/* / sol sütun */}
+          </div>{/* / sol */}
 
-          {/* ── SAĞ SÜTUN (PC) / MOBİLDE ALTTA: Sonuç ── */}
+          {/* ── SAĞ: Sonuç ── */}
           <div className="pc-right" id="sonuc-alan">
-
-            {/* PC'de sonuç yoksa placeholder */}
             {!sonuc && (
               <Kart>
                 <div className="sonuc-placeholder" style={{ textAlign: "center", padding: "36px 16px", color: "var(--muted)" }}>
@@ -455,21 +546,20 @@ export default function HesaplamaFormu() {
             )}
 
             {sonuc && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {/* Uyarılar */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {sonuc.uyarilar.map((u, i) => (
                   <div key={i} style={{
                     background: u.tip === "hata" ? "#fef2f2" : u.tip === "uyari" ? "#fffbeb" : "#eff6ff",
                     border: `1px solid ${u.tip === "hata" ? "#fca5a5" : u.tip === "uyari" ? "#fde68a" : "#bfdbfe"}`,
-                    borderRadius: 8, padding: "10px 14px",
+                    borderRadius: 8, padding: "9px 12px",
                     color: u.tip === "hata" ? "#b91c1c" : u.tip === "uyari" ? "#92400e" : "#1e40af",
-                    fontSize: 13,
+                    fontSize: 12,
                   }}>
                     {u.tip === "hata" ? "❌" : u.tip === "uyari" ? "⚠️" : "ℹ️"} {u.mesaj}
                   </div>
                 ))}
 
-                {/* Toplam ödenek — büyük kart */}
+                {/* Toplam ödenek */}
                 <div className="toplam-kart" style={{
                   background: "linear-gradient(135deg, #c0392b 0%, #922b21 100%)",
                   borderRadius: 14, padding: "20px 18px", color: "#fff", textAlign: "center",
@@ -490,7 +580,7 @@ export default function HesaplamaFormu() {
                   )}
                 </div>
 
-                {/* Özet kartlar — 2x2 grid */}
+                {/* Özet kartlar */}
                 <div className="sonuc-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <SonKart icon="📅" etiket="Rapor Günü"      deger={`${sonuc.toplamRaporGun} gün`} renk="var(--blue)" />
                   <SonKart icon="✅" etiket="Ödenecek Gün"    deger={`${sonuc.odenenGun} gün`}      renk="var(--green)" />
@@ -502,7 +592,7 @@ export default function HesaplamaFormu() {
                     alt={sonuc.asgariUcretUygulandimi ? "⚠️ Asgari ücret" : sonuc.ikiKatTavanUygulandimi ? "⚠️ 2× asgari" : sonuc.yuzElliTavanUygulandimi ? "⚠️ %150 tavan" : undefined} />
                 </div>
 
-                {/* Günlük oran tablosu */}
+                {/* Günlük oranlar */}
                 <Kart>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <div className="oran-kutu" style={{ textAlign: "center", background: "#f0fdf4", borderRadius: 9, padding: "12px 8px" }}>
@@ -523,10 +613,9 @@ export default function HesaplamaFormu() {
                 </div>
               </div>
             )}
-          </div>{/* / sağ sütun */}
+          </div>{/* / sağ */}
 
-        </div>{/* / pc-grid */}
-
+        </div>
       </div>
     </div>
   );
@@ -535,7 +624,7 @@ export default function HesaplamaFormu() {
 /* ── Alt bileşenler ─────────────────────────────────── */
 function Kart({ children }: { children: React.ReactNode }) {
   return (
-    <div className="kart" style={{ background: "var(--card-bg)", borderRadius: 12, padding: "16px 14px", boxShadow: "var(--shadow)", border: "1px solid #e2e8f0" }}>
+    <div className="kart" style={{ background: "var(--card-bg)", borderRadius: 12, padding: "12px 12px", boxShadow: "var(--shadow)", border: "1px solid #e2e8f0" }}>
       {children}
     </div>
   );
@@ -564,7 +653,7 @@ function BilgiKutu({ renk, children }: { renk: "mavi"|"sari"|"yesil"|"kirmizi"|"
 }
 function Chip({ renk, etiket, deger }: { renk: string; etiket: string; deger: string }) {
   return (
-    <div className="chip" style={{ background: `${renk}15`, border: `1px solid ${renk}35`, borderRadius: 7, padding: "4px 9px", fontSize: 11 }}>
+    <div className="chip" style={{ background: `${renk}15`, border: `1px solid ${renk}35`, borderRadius: 7, padding: "4px 9px" }}>
       <div style={{ color: "var(--muted)", fontSize: 10 }}>{etiket}</div>
       <div className="chip-val" style={{ color: renk, fontWeight: 700, fontSize: 12 }}>{deger}</div>
     </div>
@@ -582,10 +671,10 @@ function SonKart({ icon, etiket, deger, renk, alt }: { icon: string; etiket: str
 }
 
 /* ── Stiller ─────────────────────────────────────────── */
-const inp: React.CSSProperties = { width: "100%", border: "1.5px solid var(--border)", borderRadius: 7, padding: "9px 10px", fontSize: 14, color: "var(--text)", background: "#fff", outline: "none", boxSizing: "border-box" };
-const tabloInp: React.CSSProperties = { width: "100%", border: "1.5px solid var(--border)", borderRadius: 6, padding: "7px 8px", fontSize: 13, color: "var(--text)", background: "#fff", outline: "none", boxSizing: "border-box" };
-const lb: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5 };
-const th: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: "var(--muted)" };
+const inp: React.CSSProperties = { width: "100%", border: "1.5px solid var(--border)", borderRadius: 7, padding: "8px 10px", fontSize: 13, color: "var(--text)", background: "#fff", outline: "none", boxSizing: "border-box" };
+const tabloInp: React.CSSProperties = { width: "100%", border: "1.5px solid var(--border)", borderRadius: 6, padding: "6px 7px", fontSize: 12, color: "var(--text)", background: "#fff", outline: "none", boxSizing: "border-box" };
+const lb: React.CSSProperties = { display: "block", fontSize: 11, fontWeight: 600, color: "#374151", marginBottom: 4 };
+const th: React.CSSProperties = { fontSize: 10, fontWeight: 600, color: "var(--muted)" };
 function eylemBtn(c: string): React.CSSProperties {
-  return { background: c, color: "#fff", border: "none", borderRadius: 7, padding: "8px 13px", fontSize: 12, fontWeight: 600, cursor: "pointer" };
+  return { background: c, color: "#fff", border: "none", borderRadius: 7, padding: "7px 11px", fontSize: 11, fontWeight: 600, cursor: "pointer" };
 }
