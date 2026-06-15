@@ -108,7 +108,7 @@ export default function HesaplamaFormu() {
   const [kazancMod, setKazancMod] = useState<"manuel" | "asgari">("manuel");
   const ayListesi = getOnceki12Ay(raporBaslangic);
   const [ayKazancSatirlar, setAyKazancSatirlar] = useState<AyKazancSatir[]>(() =>
-    ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 30 }))
+    ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 }))
   );
 
   const [emsalAktif, setEmsalAktif] = useState(false);
@@ -143,7 +143,7 @@ export default function HesaplamaFormu() {
         for (const ay of yeniAylar) {
           const mevcutlar = prev.filter(s => s.ay === ay);
           if (mevcutlar.length > 0) result.push(...mevcutlar);
-          else result.push({ id: _aysatirId++, ay, kazanc: 0, primGunu: 30 });
+          else result.push({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 });
         }
         return result;
       });
@@ -267,7 +267,7 @@ export default function HesaplamaFormu() {
 
   const handleTemizle = () => {
     setSonuc(null); setHata(null); setKazancMod("manuel");
-    setAyKazancSatirlar(ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 30 })));
+    setAyKazancSatirlar(ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 })));
     setSatirlar([
       { id: 1, tur: "ayakta", gun: null, baslangic: "", bitis: "" },
       { id: 2, tur: "ayakta", gun: null, baslangic: "", bitis: "" },
@@ -388,14 +388,14 @@ export default function HesaplamaFormu() {
                     {tarihMod === "gun" ? (
                       <input
                         type="number" min={1}
-                        value={s.gun ?? 0}
+                        value={s.gun ?? ""}
                         onChange={(e) => {
                           const v = e.target.value;
                           updateSatir(s.id, "gun", v === "" ? null : Math.max(1, parseInt(v) || 1));
                         }}
                         className="gun-input"
                         style={{ ...inp, width: 72, fontSize: 13, fontWeight: 700, textAlign: "center", padding: "4px 5px", flexShrink: 0 }}
-                        placeholder="0" />
+                        placeholder="Gün" />
                     ) : (
                       <div style={{ display: "flex", gap: 4, flex: 1, minWidth: 0, alignItems: "center" }}>
                         <input type="date" value={s.baslangic}
@@ -533,7 +533,7 @@ export default function HesaplamaFormu() {
                             <input type="number" min={0} step={0.01} value={s.kazanc || ""} placeholder="0,00"
                               onChange={(e) => updateAySatir(s.id, "kazanc", e.target.value)}
                               style={{ ...tabloInp, borderColor: altSinir ? "#fbbf24" : "var(--border)", background: altSinir ? "#fffbeb" : "#fff" }} />
-                            <input type="number" min={0} max={30} value={s.primGunu || ""} placeholder="0"
+                            <input type="number" min={0} max={30} value={s.primGunu || ""} placeholder=""
                               onChange={(e) => updateAySatir(s.id, "primGunu", e.target.value)} style={tabloInp} />
                             {/* Sil — sadece ek satırlarda */}
                             {satirlar.length > 1 ? (
