@@ -192,7 +192,7 @@ export default function HesaplamaFormu() {
   const handleHesapla = () => {
     setHata(null); setSonuc(null);
 
-    // Analık + tarih modunda satırlar AnalikHesap'tan geliyor, gecerli kontrolü atla
+    // Analık + tarih modunda satırlar AnalikHesap'tan geliyor
     const analikTarihAktif = raporTuru === "analik" && tarihMod === "tarih";
 
     if (!analikTarihAktif) {
@@ -212,8 +212,9 @@ export default function HesaplamaFormu() {
       }
     }
 
+    // Analık + tarih: doğum tarihi zorunlu
     if (analikTarihAktif && !analikSonuc) {
-      setHata("Doğum öncesi bilgileri ve doğum tarihini giriniz."); return;
+      setHata("Doğum tarihini giriniz."); return;
     }
 
     const gecerli = satirlar.filter(s =>

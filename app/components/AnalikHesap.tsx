@@ -397,6 +397,11 @@ export default function AnalikHesap({ onChange }: Props) {
 
       {sonrasiBaslangic && sonrasiBitis && (
         <DonemKart renk="#b45309" baslik={`📋 Doğum Sonrası Dönem — ${fmt_tarih(sonrasiBaslangic)} → ${fmt_tarih(sonrasiBitis)} (${Math.min(sonrasiGun, sonrasiMax)} gün)`}>
+          {!oncesiRaporVar && (
+            <InfoSatir renk="#b45309" style={{ marginBottom: 6, fontWeight: 600 }}>
+              ℹ️ Doğum öncesi raporu yok → Doğum sonrası <b>112 gün</b> ödenecek
+            </InfoSatir>
+          )}
           {sonrasiGun > sonrasiMax && (
             <InfoSatir renk="#b45309" style={{ marginBottom: 4 }}>
               ℹ️ Hesaplanan süre ({sonrasiGun} gün) max sınırı ({sonrasiMax} gün) aşıyor. Hesaplama <b>{sonrasiMax} gün</b> üzerinden yapılacaktır.
