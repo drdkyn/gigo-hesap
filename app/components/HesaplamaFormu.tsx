@@ -29,9 +29,6 @@ function addDays(dateStr: string, days: number) {
   const d = new Date(dateStr); d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
-function gunFarki(a: string, b: string) {
-  return Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000) + 1);
-}
 
 /* ── Veri yapıları ───────────────────────────────────── */
 interface AyKazancSatir { id: number; ay: string; kazanc: number; primGunu: number; }
