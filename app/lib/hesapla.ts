@@ -264,8 +264,8 @@ export function hesapla(input: HesaplaInput): HesaplaResult {
     if (gunlukSonuc > yuzElliTavan && normalMaasOrtalama > 0) {
       gunlukSonuc = yuzElliTavan;
       yuzElliTavanUygulandimi = true;
-      adimlar.push(`⚠️ %150 tavan: normal maaş ort. ${fmt(normalMaasOrtalama)} ₺ × 1.5 = ${fmt(yuzElliTavan)} ₺ → tavan uygulandı`);
-      uyarilar.push({ tip: "uyari", mesaj: `Prim/ikramiye dahil kazanç normal maaş ortalamasının %150'sini (${fmt(yuzElliTavan)} ₺) aştığından sınırlandırıldı.` });
+      adimlar.push(`⚠️ %150 tavan: prime esas kazanç ort. ${fmt(normalMaasOrtalama)} ₺ × 1.5 = ${fmt(yuzElliTavan)} ₺ → tavan uygulandı`);
+      uyarilar.push({ tip: "uyari", mesaj: `Prim/ikramiye dahil kazanç prime esas kazanç ortalamasının %150'sini (${fmt(yuzElliTavan)} ₺) aştığından sınırlandırıldı.` });
     }
   }
 

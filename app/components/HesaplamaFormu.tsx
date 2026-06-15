@@ -643,19 +643,19 @@ export default function HesaplamaFormu() {
             {/* ── 5. Prim/İkramiye Tavan ── */}
             <Kart>
               <Baslik no={isKazaMH ? "5" : "4"} metin="Prim / İkramiye Tavan Kontrolü (İsteğe Bağlı)" />
-              <BilgiKutu renk="mor">Prim/ikramiye dahilse toplam <b>normal maaş ortalamasının %150'sini</b> geçemez.</BilgiKutu>
+              <BilgiKutu renk="mor">Prim/ikramiye dahilse toplam <b>prime esas kazanç ortalamasının %150'sini</b> geçemez.</BilgiKutu>
               <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, marginTop: 8 }}>
                 <input type="checkbox" checked={normalMaasAktif} onChange={(e) => setNormalMaasAktif(e.target.checked)} />
                 %150 tavan kontrolü uygulansın
               </label>
               {normalMaasAktif && (
                 <div style={{ marginTop: 10 }}>
-                  <p style={{ margin: "0 0 6px", fontSize: 11, color: "var(--muted)" }}>Her ay için normal maaş (prim/ikramiye hariç) brüt:</p>
+                  <p style={{ margin: "0 0 6px", fontSize: 11, color: "var(--muted)" }}>Her ay için prime esas kazanç (prim/ikramiye hariç) brüt:</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     {getOnceki12Ay(raporBaslangic).map((ay, idx) => (
                       <div key={ay} style={{ display: "grid", gridTemplateColumns: "2fr 2fr", gap: 8, alignItems: "center" }}>
                         <span style={{ fontSize: 11, color: "#475569" }}>{ayEtiket(ay)}</span>
-                        <input type="number" min={0} value={normalMaaslar[idx] || ""} placeholder="Normal maaş"
+                        <input type="number" min={0} value={normalMaaslar[idx] || ""} placeholder="Prime esas kazanç"
                           onChange={(e) => { const k = [...normalMaaslar]; k[idx] = parseFloat(e.target.value) || 0; setNormalMaaslar(k); }} style={tabloInp} />
                       </div>
                     ))}
