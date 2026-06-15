@@ -317,14 +317,16 @@ export default function HesaplamaFormu() {
                 }}>📅 Tarih Gir</button>
               </div>
 
-              {/* Uyarı: kronolojik sıra önemli */}
-              <div style={{
-                background: "#fffbeb", border: "1px solid #fde68a",
-                borderRadius: 6, padding: "5px 10px", fontSize: 11,
-                color: "#92400e", marginBottom: 6, fontWeight: 600,
-              }}>
-                ⚠️ Rapordaki sırası ile giriniz. (İlk 2 gün ödenmez kuralı satır sırasına göre uygulanır.)
-              </div>
+              {/* Uyarı: sadece hastalıkta göster */}
+              {raporTuru === "hastalik" && (
+                <div style={{
+                  background: "#fffbeb", border: "1px solid #fde68a",
+                  borderRadius: 6, padding: "5px 10px", fontSize: 11,
+                  color: "#92400e", marginBottom: 6, fontWeight: 600,
+                }}>
+                  ⚠️ Rapordaki sırası ile giriniz. (İlk 2 gün ödenmez kuralı satır sırasına göre uygulanır.)
+                </div>
+              )}
 
               {/* Satırlar - her biri tek satır */}
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
