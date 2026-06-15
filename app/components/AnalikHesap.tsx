@@ -104,10 +104,13 @@ export default function AnalikHesap({ onChange }: Props) {
       onChange(null); return;
     }
 
+    // Rapor 32. haftadan önce olamaz — zorunlu 32. hafta
+    // Eğer 32+ hafta geldi ise, kaybedilen hafta var
+    const kayipHafta = Math.max(0, kacincuHafta - 32);
+    const doğumOncesiMaxPotansiyel = 56 - (kayipHafta * 7); // 32. hafta = 56, 33. = 49, 34. = 42 vb
+
     // Tahmini doğum tarihi (40. hafta)
     const tahmini40 = addWeeks(raporTarihi, 40 - kacincuHafta);
-
-    let istirahStart: string;
     let aktGun = 0;
 
     if (!calisir) {
@@ -138,11 +141,17 @@ export default function AnalikHesap({ onChange }: Props) {
       erken = gunFarki(dogumTarihi, addDays(tahmini40, -1));
     }
 
-    // Geç doğum aşımı (tahmini40 sonrası) - ilk 2 gün bekleme, kalanı ödenir
+    // Geç doğum aşımı - ilk 2 gün ödenmez, kalanı aşım
+    // Ama doğum öncesi max'ı geçen kısım aşım
     let gecAsim = 0;
     if (dogumTarihi && dogumTarihi > tahmini40) {
       const gecGun = gunFarki(addDays(tahmini40, 1), dogumTarihi);
-      gecAsim = Math.max(0, gecGun - 2); // ilk 2 gün ödenmez
+      const gecAsimRaw = Math.max(0, gecGun - 2); // ilk 2 gün ödenmez
+      // Aşım = (geç aşım) - (doğum öncesi max'ı aşan kısım)
+      // Çalışır: doğumOncesiMax = aktarilanGun
+      // Çalışamaz: doğumOncesiMax = doğumOncesiMaxPotansiyel
+      const doğumOncesiMax = calisir ? aktGun : doğumOncesiMaxPotansiyel;
+      gecAsim = Math.max(0, gecAsimRaw - Math.max(0, doğumOncesiMax - 56));
     }
 
     setAktarilanGun(aktGun);
