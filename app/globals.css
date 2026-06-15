@@ -13,7 +13,7 @@
   --muted:      #64748b;
   --card-bg:    #ffffff;
   --shadow:     0 2px 8px rgba(0,0,0,0.07);
-  --header-h:   72px;
+  --header-h:   80px;
 }
 
 html, body { height: 100%; }
@@ -75,31 +75,31 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
   .pc-left::-webkit-scrollbar-thumb,
   .pc-right::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-  .kart { padding: 8px 10px !important; }
-  .bolum-baslik { font-size: 11px !important; margin-bottom: 6px !important; }
-  .tog-btn       { padding: 5px 4px !important; font-size: 11px !important; }
-  .tog-btn-kucuk { padding: 3px 7px !important; font-size: 10px !important; }
-  .bilgi-kutu { padding: 5px 9px !important; font-size: 10px !important; margin-top: 5px !important; }
-  .chip { padding: 3px 7px !important; }
-  .chip-val { font-size: 11px !important; }
-  .gun-input { font-size: 13px !important; width: 70px !important; padding: 4px 5px !important; }
-  .toplam-rakam { font-size: 26px !important; }
-  .toplam-kart  { padding: 12px 14px !important; }
-  .sonuc-grid { gap: 6px !important; }
-  .son-kart   { padding: 7px 9px !important; }
-  .son-kart-icon { font-size: 14px !important; margin-bottom: 2px !important; }
-  .son-kart-val  { font-size: 12px !important; }
-  .oran-kutu { padding: 7px 5px !important; }
-  .oran-val  { font-size: 14px !important; }
-  .hesapla-btn { padding: 9px !important; font-size: 13px !important; }
-  .not-kutu { padding: 6px 9px !important; font-size: 10px !important; }
-  .sonuc-placeholder { padding: 20px 14px !important; }
-  .header-title { font-size: 20px !important; }
-  .header-sub   { font-size: 12px !important; }
-  .header-ikon  { width: 48px !important; height: 48px !important; font-size: 26px !important; border-radius: 14px !important; }
+  .kart { padding: 13px 15px !important; }
+  .bolum-baslik { font-size: 13px !important; margin-bottom: 10px !important; }
+  .tog-btn       { padding: 9px 6px !important; font-size: 13px !important; }
+  .tog-btn-kucuk { padding: 5px 9px !important; font-size: 12px !important; }
+  .bilgi-kutu { padding: 8px 12px !important; font-size: 12px !important; margin-top: 7px !important; }
+  .chip { padding: 4px 9px !important; }
+  .chip-val { font-size: 12px !important; }
+  .gun-input { font-size: 14px !important; width: 76px !important; padding: 5px 6px !important; }
+  .toplam-rakam { font-size: 32px !important; }
+  .toplam-kart  { padding: 18px 20px !important; }
+  .sonuc-grid { gap: 8px !important; }
+  .son-kart   { padding: 11px 13px !important; }
+  .son-kart-icon { font-size: 18px !important; margin-bottom: 3px !important; }
+  .son-kart-val  { font-size: 15px !important; }
+  .oran-kutu { padding: 11px 8px !important; }
+  .oran-val  { font-size: 18px !important; }
+  .hesapla-btn { padding: 12px !important; font-size: 15px !important; }
+  .not-kutu { padding: 9px 12px !important; font-size: 12px !important; }
+  .sonuc-placeholder { padding: 32px 20px !important; }
+  .header-title { font-size: 24px !important; }
+  .header-sub   { font-size: 13px !important; }
+  .header-ikon  { width: 54px !important; height: 54px !important; font-size: 30px !important; border-radius: 15px !important; }
 
   /* Bilgi kutusu PC'de tek satır */
-  .gun-bilgi { padding: 7px 12px !important; font-size: 12px !important; }
+  .gun-bilgi { padding: 9px 14px !important; font-size: 13px !important; }
 }
 
 /* ── Mobil ince ayarlar ─────────────────────────────────── */
