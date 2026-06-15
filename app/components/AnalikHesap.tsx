@@ -54,10 +54,13 @@ interface Props {
 
 /* ── Bileşen ─────────────────────────────────────────── */
 export default function AnalikHesap({ onChange }: Props) {
+  // Doğum öncesi raporu var mı?
+  const [oncesiRaporVar, setOncesiRaporVar] = useState(true); // varsayılan: var
+
   // Doğum öncesi girdiler
   const [raporTarihi, setRaporTarihi] = useState("");
   const [kacincuHafta, setKacincuHafta] = useState<number | null>(null);
-  const [calisir, setCalisir] = useState<boolean | null>(null); // true=aktarma var, false=yok
+  const [calisir, setCalisir] = useState<boolean | null>(null);
 
   // Doğum tarihi
   const [dogumTarihi, setDogumTarihi] = useState("");
@@ -76,6 +79,24 @@ export default function AnalikHesap({ onChange }: Props) {
 
   // ── Hesapla ───────────────────────────────────────────
   useEffect(() => {
+    // Doğum öncesi raporu yok → sadece doğum sonrası
+    if (!oncesiRaporVar) {
+      setOncesiBaslangic(""); setOncesiBitis("");
+      setAktarilanGun(0); setErkenGun(0);
+      if (dogumTarihi) {
+        const sBas = dogumTarihi;
+        const sBit = addDays(dogumTarihi, 167); // 168 gün
+        setSonrasiBaslangic(sBas);
+        setSonrasiBitis(sBit);
+        setSonrasiSatirlar([yeniDonemSatir(sBas, sBit, "ayakta")]);
+      } else {
+        setSonrasiBaslangic(""); setSonrasiBitis("");
+        setSonrasiSatirlar([]);
+      }
+      setOncesiSatirlar([]);
+      return;
+    }
+
     if (!raporTarihi || kacincuHafta === null || calisir === null) {
       setOncesiBaslangic(""); setOncesiBitis(""); setSonrasiBaslangic(""); setSonrasiBitis("");
       onChange(null); return;
@@ -133,10 +154,21 @@ export default function AnalikHesap({ onChange }: Props) {
       setSonrasiSatirlar([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [raporTarihi, kacincuHafta, calisir, dogumTarihi]);
+  }, [raporTarihi, kacincuHafta, calisir, dogumTarihi, oncesiRaporVar]);
 
   // Dışarıya bildir
   useEffect(() => {
+    if (!oncesiRaporVar) {
+      if (!dogumTarihi) { onChange(null); return; }
+      onChange({
+        oncesiBaslangic: "", oncesiBitis: "", oncesiGun: 0,
+        sonrasiBaslangic, sonrasiBitis,
+        sonrasiGun: sonrasiBitis ? Math.min(gunFarki(sonrasiBaslangic, sonrasiBitis), 168) : 0,
+        toplamGun: 0, aktarilanGun: 0, erkenDogumEkGun: 0,
+        oncesiSatirlar: [], sonrasiSatirlar,
+      });
+      return;
+    }
     if (!oncesiBaslangic || !dogumTarihi) { onChange(null); return; }
     const oBit = oncesiBitis || addDays(dogumTarihi, -1);
     onChange({
@@ -144,12 +176,12 @@ export default function AnalikHesap({ onChange }: Props) {
       oncesiGun: Math.min(gunFarki(oncesiBaslangic, oBit), 56),
       sonrasiBaslangic, sonrasiBitis,
       sonrasiGun: sonrasiBitis ? Math.min(gunFarki(sonrasiBaslangic, sonrasiBitis), aktarilanGun === 0 ? 168 : 112) : 0,
-      toplamGun: 0, // dışarıda hesaplanacak
+      toplamGun: 0,
       aktarilanGun, erkenDogumEkGun: erkenGun,
       oncesiSatirlar, sonrasiSatirlar,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oncesiBaslangic, oncesiBitis, sonrasiBaslangic, sonrasiBitis, oncesiSatirlar, sonrasiSatirlar, aktarilanGun, erkenGun]);
+  }, [oncesiRaporVar, oncesiBaslangic, oncesiBitis, sonrasiBaslangic, sonrasiBitis, oncesiSatirlar, sonrasiSatirlar, aktarilanGun, erkenGun, dogumTarihi]);
 
   // ── Satır işlemleri ───────────────────────────────────
   const updateOncesiSatir = (id: number, field: keyof DonemSatir, val: string) => {
@@ -215,82 +247,106 @@ export default function AnalikHesap({ onChange }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-      {/* ── Doğum Öncesi Bilgileri ── */}
+      {/* ── Doğum Öncesi Raporu Kartı ── */}
       <DonemKart renk="#7c3aed" baslik="🤰 Doğum Öncesi Raporu">
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div>
-              <label style={lb}>Rapor Tarihi</label>
-              <input type="date" value={raporTarihi}
-                onChange={e => setRaporTarihi(e.target.value)} style={inp} />
-            </div>
-            <div>
-              <label style={lb}>Kaçıncı Hafta</label>
-              <input type="number" min={32} max={41} value={kacincuHafta ?? ""}
-                placeholder="32-41"
-                onChange={e => setKacincuHafta(parseInt(e.target.value) || null)}
-                style={inp} />
-            </div>
-          </div>
-
-          <div>
-            <label style={lb}>Çalışma Durumu</label>
-            {calisir === null && raporTarihi && kacincuHafta && (
-              <div style={{
-                background: "#fef3c7", border: "1px solid #f59e0b",
-                borderRadius: 6, padding: "4px 10px", fontSize: 11,
-                color: "#92400e", marginBottom: 5, fontWeight: 600,
-                display: "inline-flex", alignItems: "center", gap: 5,
-              }}>
-                ⚠️ Lütfen çalışma durumunu seçiniz
-              </div>
-            )}
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => setCalisir(false)} style={{
-                ...togStyle(calisir === false, "#7c3aed"),
-              }}>Çalışamaz (Aktarma Yok)</button>
-              <button onClick={() => setCalisir(true)} style={{
-                ...togStyle(calisir === true, "#059669"),
-              }}>Çalışır (Aktarma Var)</button>
-            </div>
-          </div>
-
-          {/* Tahmini doğum ve hesaplanan bilgiler */}
-          {tahminiDogum && (
-            <InfoSatir renk="#7c3aed">
-              Tahmini doğum tarihi (40. hafta): <b>{fmt_tarih(tahminiDogum)}</b>
-            </InfoSatir>
-          )}
-          {oncesiBaslangic && (
-            <InfoSatir>
-              İstirahat başlangıcı: <b>{fmt_tarih(oncesiBaslangic)}</b>
-              {calisir && aktarilanGun > 0 && (
-                <span style={{ color: "#059669", marginLeft: 8 }}>
-                  (+{aktarilanGun} gün doğum sonrasına aktarılacak ve ödenecek)
-                </span>
-              )}
-            </InfoSatir>
-          )}
+        {/* Radio: Rapor var/yok */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 2 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, fontWeight: oncesiRaporVar ? 700 : 500 }}>
+            <input type="radio" name="oncesiDurum" checked={oncesiRaporVar}
+              onChange={() => setOncesiRaporVar(true)} />
+            Doğum Öncesi Raporu Var
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, fontWeight: !oncesiRaporVar ? 700 : 500, color: !oncesiRaporVar ? "#b91c1c" : "inherit" }}>
+            <input type="radio" name="oncesiDurum" checked={!oncesiRaporVar}
+              onChange={() => setOncesiRaporVar(false)} />
+            Doğum Öncesi Raporu Yok
+          </label>
         </div>
+
+        {/* Rapor detayları — sadece var ise göster */}
+        {oncesiRaporVar && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div>
+                <label style={lb}>Rapor Tarihi</label>
+                <input type="date" value={raporTarihi}
+                  onChange={e => setRaporTarihi(e.target.value)} style={inp} />
+              </div>
+              <div>
+                <label style={lb}>Kaçıncı Hafta</label>
+                <input type="number" min={32} max={41} value={kacincuHafta ?? ""}
+                  placeholder="32-41"
+                  onChange={e => setKacincuHafta(parseInt(e.target.value) || null)}
+                  style={inp} />
+              </div>
+            </div>
+
+            <div>
+              <label style={lb}>Çalışma Durumu</label>
+              {calisir === null && raporTarihi && kacincuHafta && (
+                <div style={{ background: "#fef3c7", border: "1px solid #f59e0b", borderRadius: 6, padding: "4px 10px", fontSize: 11, color: "#92400e", marginBottom: 5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  ⚠️ Lütfen çalışma durumunu seçiniz
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => setCalisir(false)} style={togStyle(calisir === false, "#7c3aed")}>Çalışamaz (Aktarma Yok)</button>
+                <button onClick={() => setCalisir(true)} style={togStyle(calisir === true, "#059669")}>Çalışır (Aktarma Var)</button>
+              </div>
+            </div>
+
+            {tahminiDogum && (
+              <InfoSatir renk="#7c3aed">
+                Tahmini doğum tarihi (40. hafta): <b>{fmt_tarih(tahminiDogum)}</b>
+              </InfoSatir>
+            )}
+            {oncesiBaslangic && (
+              <InfoSatir>
+                İstirahat başlangıcı: <b>{fmt_tarih(oncesiBaslangic)}</b>
+                {calisir && aktarilanGun > 0 && (
+                  <span style={{ color: "#059669", marginLeft: 8 }}>
+                    (+{aktarilanGun} gün doğum sonrasına aktarılacak ve ödenecek)
+                  </span>
+                )}
+              </InfoSatir>
+            )}
+          </div>
+        )}
       </DonemKart>
 
       {/* ── Doğum Tarihi ── */}
       <DonemKart renk="#b45309" baslik="👶 Doğum Tarihi">
+        {/* Radio tekrarı - Doğum Tarihi kartında da göster */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, fontWeight: oncesiRaporVar ? 700 : 500 }}>
+            <input type="radio" name="oncesiDurum" checked={oncesiRaporVar}
+              onChange={() => setOncesiRaporVar(true)} />
+            Doğum Öncesi Raporu Var
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, fontWeight: !oncesiRaporVar ? 700 : 500, color: !oncesiRaporVar ? "#b91c1c" : "inherit" }}>
+            <input type="radio" name="oncesiDurum" checked={!oncesiRaporVar}
+              onChange={() => setOncesiRaporVar(false)} />
+            Doğum Öncesi Raporu Yok
+          </label>
+        </div>
         <div>
           <label style={lb}>Doğum Tarihi</label>
           <input type="date" value={dogumTarihi}
             onChange={e => setDogumTarihi(e.target.value)} style={{ ...inp, maxWidth: 200 }} />
         </div>
-        {erkenGun > 0 && (
+        {erkenGun > 0 && oncesiRaporVar && (
           <InfoSatir renk="#b45309">
             40 haftadan önce doğum: <b>+{erkenGun} gün</b> doğum sonrasına eklendi
+          </InfoSatir>
+        )}
+        {!oncesiRaporVar && dogumTarihi && (
+          <InfoSatir renk="#b45309">
+            Doğum öncesi raporu yok → Doğum sonrası <b>168 güne kadar</b> ödenebilir.
           </InfoSatir>
         )}
       </DonemKart>
 
       {/* ── Dönem özeti ve satırlar ── */}
-      {oncesiBaslangic && oncesiBitis && (
+      {oncesiRaporVar && oncesiBaslangic && oncesiBitis && (
         <DonemKart renk="#7c3aed" baslik={`📋 Doğum Öncesi Dönem — ${fmt_tarih(oncesiBaslangic)} → ${fmt_tarih(oncesiBitis)} (${oncesiGun} gün)`}>
           {oncesiAsim && (
             <UyariKutu>⚠️ Doğum öncesi max <b>56 gün</b> olabilir. Girilen: <b>{oncesiGun} gün</b>. Hesaplama 56 gün üzerinden yapılır.</UyariKutu>
