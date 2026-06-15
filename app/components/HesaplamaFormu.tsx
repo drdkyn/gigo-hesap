@@ -460,14 +460,21 @@ export default function HesaplamaFormu() {
               {/* Anlık özet chips */}
               {toplamRaporGun > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
-                  <Chip renk="var(--blue)" etiket="Toplam Rapor" deger={`${toplamRaporGun} gün`} />
+                  <Chip
+                    renk={raporTuru === "analik" && toplamRaporGun > 168 ? "var(--red)" : "var(--blue)"}
+                    etiket="Toplam Rapor"
+                    deger={`${toplamRaporGun} gün${raporTuru === "analik" && toplamRaporGun > 168 ? " ⚠️" : ""}`}
+                  />
                   {tarihMod === "tarih" && <Chip renk="#475569" etiket="Bitiş" deger={raporBitis} />}
                   <Chip renk={onikiAyGun >= 90 ? "var(--green)" : "var(--red)"} etiket="12 Ay Prim" deger={`${onikiAyGun} gün`} />
                   {canliOrt > 0 && <Chip renk={canliOrt >= bitisAsgari ? "var(--green)" : "#d97706"} etiket="Günlük Ort." deger={`${fmt(canliOrt)} ₺`} />}
                 </div>
               )}
-              {onikiAyGun > 0 && onikiAyGun < 90 && !isKazaMH && (
+              {onikiAyGun > 0 && onikiAyGun < 90 && !isKazaMH && raporTuru !== "analik" && (
                 <BilgiKutu renk="kirmizi">⚠️ Son 12 ayda <b>{onikiAyGun} gün</b> prim var. Hak için <b>90 gün</b> gerekli.</BilgiKutu>
+              )}
+              {raporTuru === "analik" && toplamRaporGun > 168 && (
+                <BilgiKutu renk="kirmizi">⚠️ Analık raporu maksimum <b>24 hafta (168 gün)</b> olabilir. Girilen: <b>{toplamRaporGun} gün</b>. Hesaplama 168 gün üzerinden yapılır.</BilgiKutu>
               )}
             </Kart>
 
