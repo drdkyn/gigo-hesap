@@ -274,10 +274,11 @@ export default function HesaplamaFormu() {
       
       // Doğum öncesi/sonrası gün doğrudan AnalikHesap sonuçlarından al
       analikOncesiGunHesap = analikSonuc.oncesiGun > 0 ? Math.min(analikSonuc.oncesiGun, 56) : 0;
-      // Sonrası: 112 + aktarılan + erken, toplam 168 aşılamaz (geç aşım ayrı)
+      // Sonrası: 112 + aktarılan + erken, toplam 168 aşılamaz
+      // analikSonuc.sonrasiGun zaten geç aşımı İÇERMİYOR (tarih hesabında ayrı)
       const sonrasiMaxHesap = Math.min(112 + analikSonuc.aktarilanGun + analikSonuc.erkenDogumEkGun, 168);
       analikSonrasiGunHesap = analikSonuc.sonrasiGun > 0 
-        ? Math.min(analikSonuc.sonrasiGun - analikSonuc.gecAsimGun, sonrasiMaxHesap)
+        ? Math.min(analikSonuc.sonrasiGun, sonrasiMaxHesap)
         : 0;
     } else {
       // Normal karma hesap
