@@ -726,8 +726,12 @@ export default function HesaplamaFormu() {
 
                 {/* Özet kartlar */}
                 <div className="sonuc-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  <SonKart icon="📅" etiket="Rapor Günü"      deger={`${sonuc.toplamRaporGun} gün`} renk="var(--blue)" />
-                  <SonKart icon="✅" etiket="Ödenecek Gün"    deger={`${sonuc.odenenGun} gün`}      renk="var(--green)" />
+                  <SonKart icon="📅" etiket="Rapor Günü" deger={`${sonuc.toplamRaporGun} gün`} renk="var(--blue)" />
+                  {raporTuru === "analik" ? (
+                    <SonKart icon="💵" etiket="Ödenecek Tutar" deger={`${fmt(sonuc.toplamOdenek)} ₺`} renk="var(--red)" />
+                  ) : (
+                    <SonKart icon="✅" etiket="Ödenecek Gün" deger={`${sonuc.odenenGun} gün`} renk="var(--green)" />
+                  )}
                   <SonKart icon="📊" etiket="12 Ay Prim Günü" deger={`${sonuc.toplamOnikiAyPrimGun} gün`}
                     renk={sonuc.doksan_gun_sartiSaglandi ? "var(--green)" : "var(--red)"}
                     alt={sonuc.doksan_gun_sartiSaglandi ? "✓ 90 gün şartı OK" : "✗ Şart sağlanmadı"} />
@@ -742,11 +746,17 @@ export default function HesaplamaFormu() {
                     <div className="oran-kutu" style={{ textAlign: "center", background: "#f0fdf4", borderRadius: 9, padding: "12px 8px" }}>
                       <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 3 }}>Ayakta Günlük</div>
                       <div className="oran-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--green)" }}>{fmt(sonuc.ayaktaGunluk)} ₺</div>
+                      {raporTuru === "analik" && sonuc.ayaktaToplamOdenek > 0 && (
+                        <div style={{ fontSize: 10, color: "var(--green)", marginTop: 3, fontWeight: 700 }}>{fmt(sonuc.ayaktaToplamOdenek)} ₺ ({sonuc.ayaktaOdenenGun} gün)</div>
+                      )}
                       <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 2 }}>× 2/3</div>
                     </div>
                     <div className="oran-kutu" style={{ textAlign: "center", background: "#eff6ff", borderRadius: 9, padding: "12px 8px" }}>
                       <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 3 }}>Yatarak Günlük</div>
                       <div className="oran-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--blue)" }}>{fmt(sonuc.yatarakGunluk)} ₺</div>
+                      {raporTuru === "analik" && sonuc.yatarakToplamOdenek > 0 && (
+                        <div style={{ fontSize: 10, color: "var(--blue)", marginTop: 3, fontWeight: 700 }}>{fmt(sonuc.yatarakToplamOdenek)} ₺ ({sonuc.yatarakOdenenGun} gün)</div>
+                      )}
                       <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 2 }}>× 1/2</div>
                     </div>
                   </div>
