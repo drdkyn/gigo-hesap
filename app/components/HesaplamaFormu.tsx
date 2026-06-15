@@ -535,19 +535,21 @@ export default function HesaplamaFormu() {
                               style={{ ...tabloInp, borderColor: altSinir ? "#fbbf24" : "var(--border)", background: altSinir ? "#fffbeb" : "#fff" }} />
                             <input type="number" min={0} max={30} value={s.primGunu || ""} placeholder=""
                               onChange={(e) => updateAySatir(s.id, "primGunu", e.target.value)} style={tabloInp} />
-                            {/* Sil — sadece ek satırlarda */}
-                            {satirlar.length > 1 ? (
-                              <button onClick={() => removeAySatir(s.id)} style={{
-                                background: "none", border: "none", color: "#b91c1c",
-                                fontSize: 12, cursor: "pointer", padding: "0 2px", lineHeight: 1,
-                              }}>✕</button>
-                            ) : (
-                              /* + satır ekle butonu — her ayın tek satırında */
-                              <button onClick={() => addAySatir(ay)} title="Bu aya satır ekle" style={{
-                                background: "none", border: "none", color: "var(--blue)",
-                                fontSize: 14, cursor: "pointer", padding: "0 2px", lineHeight: 1, fontWeight: 700,
-                              }}>+</button>
-                            )}
+                            {/* Son satırda + ekle, ek satırlarda ✕ sil */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                              {sIdx === satirlar.length - 1 && (
+                                <button onClick={() => addAySatir(ay)} title="Bu aya satır ekle" style={{
+                                  background: "none", border: "none", color: "var(--blue)",
+                                  fontSize: 14, cursor: "pointer", padding: "0 2px", lineHeight: 1, fontWeight: 700,
+                                }}>+</button>
+                              )}
+                              {satirlar.length > 1 && (
+                                <button onClick={() => removeAySatir(s.id)} style={{
+                                  background: "none", border: "none", color: "#b91c1c",
+                                  fontSize: 11, cursor: "pointer", padding: "0 2px", lineHeight: 1,
+                                }}>✕</button>
+                              )}
+                            </div>
                           </div>
                         );
                       });
