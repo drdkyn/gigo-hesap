@@ -251,10 +251,10 @@ export default function HesaplamaFormu() {
     let hesapBitis = raporBitis;
 
     if (raporTuru === "analik" && tarihMod === "tarih" && analikSonuc) {
-      // AnalikHesap bileşeninden gelen tüm satırları karma dönem olarak kullan
+      // AnalikHesap bileşeninden gelen tüm satırları donemTip ile işaretle
       const tumSatirlar = [
-        ...analikSonuc.oncesiSatirlar.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak" })),
-        ...analikSonuc.sonrasiSatirlar.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak" })),
+        ...analikSonuc.oncesiSatirlar.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak", donemTip: "oncesi" as const })),
+        ...analikSonuc.sonrasiSatirlar.map(s => ({ baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak", donemTip: "sonrasi" as const })),
       ].filter(s => s.baslangic && s.bitis);
 
       if (tumSatirlar.length === 0) {
