@@ -85,7 +85,7 @@ export default function AnalikHesap({ onChange }: Props) {
       setAktarilanGun(0); setErkenGun(0);
       if (dogumTarihi) {
         const sBas = dogumTarihi;
-        const sBit = addDays(dogumTarihi, 111); // 112 gün
+        const sBit = addDays(dogumTarihi, 112); // 112 gün sonrası
         setSonrasiBaslangic(sBas);
         setSonrasiBitis(sBit);
         setSonrasiSatirlar([yeniDonemSatir(sBas, sBit, "ayakta")]);
@@ -147,7 +147,7 @@ export default function AnalikHesap({ onChange }: Props) {
       const sBas = dogumTarihi;
       // 112 + aktarılan + erken gün → sBit
       const sonrasiToplamGun = 112 + aktGun + erken;
-      const sBit = addDays(dogumTarihi, sonrasiToplamGun - 1);
+      const sBit = addDays(dogumTarihi, sonrasiToplamGun);
       setSonrasiBaslangic(sBas);
       setSonrasiBitis(sBit);
       setOncesiSatirlar([yeniDonemSatir(oBas, oBit || oBas, "ayakta")]);
