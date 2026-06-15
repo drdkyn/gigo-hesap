@@ -394,14 +394,22 @@ export default function HesaplamaFormu() {
                 }}>+ Yeni Rapor Satırı Ekle</button>
               </div>
 
-              {/* Gün modu bilgi kutusu — PC tek satır, mobil 2 satır */}
+              {/* Gün modu bilgi kutusu */}
               {tarihMod === "gun" && (
                 <div className="gun-bilgi" style={{
                   marginTop: 8, background: "#eff6ff", border: "1px solid #bfdbfe",
-                  borderRadius: 8, padding: "10px 14px", color: "#1e40af", lineHeight: 1.6,
+                  borderRadius: 8, padding: "10px 14px", color: "#1e40af", lineHeight: 1.7,
+                  fontSize: 13,
                 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700 }}>ℹ️ Güncel asgari ücrete (2026) göre hesaplanacaktır. </span>
-                  <span className="gun-bilgi-alt" style={{ fontSize: 13 }}>Detaylı hesap için <b>Tarih Gir</b> seçin.</span>
+                  ℹ️ Güncel asgari ücrete (2026) göre hesaplanacaktır.{" "}
+                  Detaylı hesap için{" "}
+                  <span
+                    onClick={() => { setTarihMod("tarih"); setSonuc(null); }}
+                    style={{
+                      fontSize: 15, fontWeight: 700,
+                      textDecoration: "underline", cursor: "pointer",
+                    }}
+                  >Tarih Gir'i</span>{" "}seçin.
                 </div>
               )}
 

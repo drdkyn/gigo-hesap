@@ -32,8 +32,7 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
 .pc-grid { display: flex; flex-direction: column; gap: 8px; }
 .kart    { padding: 10px 11px; }
 
-/* Bilgi kutusu: mobilde iki satır (span block) */
-.gun-bilgi-alt { display: block; }
+/* Bilgi kutusu: mobil ve PC aynı inline */
 
 /* ── PC: viewport'a tam sığan iki sütun ─────────────────── */
 @media (min-width: 900px) {
@@ -96,8 +95,7 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
   .header-ikon  { width: 48px !important; height: 48px !important; font-size: 26px !important; border-radius: 14px !important; }
 
   /* Bilgi kutusu PC'de tek satır */
-  .gun-bilgi { padding: 7px 12px !important; }
-  .gun-bilgi-alt { display: inline !important; }
+  .gun-bilgi { padding: 7px 12px !important; font-size: 12px !important; }
 }
 
 /* ── Mobil ince ayarlar ─────────────────────────────────── */
