@@ -42,8 +42,8 @@ interface RaporSatir {
 }
 
 let satirSayac = 3;
-function yeniSatir(bugun: string, tur: "ayakta" | "yatarak" = "ayakta"): RaporSatir {
-  return { id: satirSayac++, tur, gun: null, baslangic: bugun, bitis: bugun };
+function yeniSatir(tur: "ayakta" | "yatarak" = "ayakta"): RaporSatir {
+  return { id: satirSayac++, tur, gun: null, baslangic: "", bitis: "" };
 }
 
 export default function HesaplamaFormu() {
@@ -55,8 +55,8 @@ export default function HesaplamaFormu() {
   // 2. Rapor süresi ve şekli
   const [tarihMod, setTarihMod] = useState<"gun" | "tarih">("gun");
   const [satirlar, setSatirlar] = useState<RaporSatir[]>([
-    { id: 1, tur: "ayakta", gun: null, baslangic: bugun, bitis: bugun },
-    { id: 2, tur: "ayakta", gun: null, baslangic: bugun, bitis: bugun },
+    { id: 1, tur: "ayakta", gun: null, baslangic: "", bitis: "" },
+    { id: 2, tur: "ayakta", gun: null, baslangic: "", bitis: "" },
   ]);
 
   // Hesaplama için türetilen değerler
@@ -125,10 +125,7 @@ export default function HesaplamaFormu() {
     setSatirlar(prev => prev.map(s => s.id === id ? { ...s, [field]: val } : s));
     setSonuc(null);
   };
-  const addSatir = () => {
-    setSatirlar(prev => [...prev, yeniSatir(bugun)]);
-    setSonuc(null);
-  };
+  const addSatir = () => { setSatirlar(prev => [...prev, yeniSatir()]); setSonuc(null); };
   const removeSatir = (id: number) => {
     setSatirlar(prev => prev.length > 1 ? prev.filter(s => s.id !== id) : prev);
     setSonuc(null);
@@ -272,8 +269,8 @@ export default function HesaplamaFormu() {
     setSonuc(null); setHata(null); setKazancMod("manuel");
     setAyKazancSatirlar(ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 30 })));
     setSatirlar([
-      { id: 1, tur: "ayakta", gun: null, baslangic: bugun, bitis: bugun },
-      { id: 2, tur: "ayakta", gun: null, baslangic: bugun, bitis: bugun },
+      { id: 1, tur: "ayakta", gun: null, baslangic: "", bitis: "" },
+      { id: 2, tur: "ayakta", gun: null, baslangic: "", bitis: "" },
     ]);
   };
 
