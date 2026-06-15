@@ -727,13 +727,20 @@ export default function HesaplamaFormu() {
               <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", color: "#b91c1c", fontSize: 13 }}>❌ {hata}</div>
             )}
 
-            {/* Hesapla */}
-            <button onClick={handleHesapla} className="hesapla-btn" style={{
-              width: "100%", background: "linear-gradient(135deg, #1a4b8c, #0f3060)",
-              color: "#fff", border: "none", borderRadius: 10,
-              padding: "13px", fontSize: 15, fontWeight: 800, cursor: "pointer",
-              boxShadow: "0 4px 14px rgba(26,75,140,0.4)",
-            }}>🧮 Hesapla</button>
+            {/* Hesapla + Temizle */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+              <button onClick={handleHesapla} className="hesapla-btn" style={{
+                background: "linear-gradient(135deg, #1a4b8c, #0f3060)",
+                color: "#fff", border: "none", borderRadius: 10,
+                padding: "11px", fontSize: 14, fontWeight: 800, cursor: "pointer",
+                boxShadow: "0 4px 14px rgba(26,75,140,0.4)",
+              }}>🧮 Hesapla</button>
+              <button onClick={handleTemizle} style={{
+                background: "#f1f5f9", color: "#475569",
+                border: "1.5px solid #d1dce8", borderRadius: 10,
+                padding: "11px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}>🗑️ Temizle</button>
+            </div>
 
           </div>{/* / sol */}
 
