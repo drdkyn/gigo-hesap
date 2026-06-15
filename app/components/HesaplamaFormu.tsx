@@ -300,7 +300,8 @@ export default function HesaplamaFormu() {
       return sum;
     }, 0);
   const analikOncesiAsim = raporTuru === "analik" && analikOncesiGun > 56;
-  const analikSonrasiAsim = raporTuru === "analik" && analikSonrasiGun > 112;
+  const analikSonrasiMaxGun = analikOncesiGun === 0 ? 168 : 112;
+  const analikSonrasiAsim = raporTuru === "analik" && analikSonrasiGun > analikSonrasiMaxGun;
   const bitisAsgari = raporBaslangic ? getGunlukAsgariUcret(new Date(raporBaslangic)) : 0;
   const isKazaMH = raporTuru === "iskazasi" || raporTuru === "meslekhastligi";
 
@@ -505,7 +506,7 @@ export default function HesaplamaFormu() {
                     <Chip renk={analikOncesiAsim ? "var(--red)" : "#7c3aed"} etiket="D.Öncesi" deger={`${analikOncesiGun} / 56 gün${analikOncesiAsim ? " ⚠️" : ""}`} />
                   )}
                   {raporTuru === "analik" && analikSonrasiGun > 0 && (
-                    <Chip renk={analikSonrasiAsim ? "var(--red)" : "#b45309"} etiket="D.Sonrası" deger={`${analikSonrasiGun} / 112 gün${analikSonrasiAsim ? " ⚠️" : ""}`} />
+                    <Chip renk={analikSonrasiAsim ? "var(--red)" : "#b45309"} etiket="D.Sonrası" deger={`${analikSonrasiGun} / ${analikSonrasiMaxGun} gün${analikSonrasiAsim ? " ⚠️" : ""}`} />
                   )}
                 </div>
               )}
@@ -516,7 +517,7 @@ export default function HesaplamaFormu() {
                 <BilgiKutu renk="kirmizi">⚠️ Doğum öncesi raporu maksimum <b>56 gün (8 hafta)</b> olabilir. Girilen: <b>{analikOncesiGun} gün</b>.</BilgiKutu>
               )}
               {analikSonrasiAsim && (
-                <BilgiKutu renk="kirmizi">⚠️ Doğum sonrası raporu maksimum <b>112 gün (16 hafta)</b> olabilir. Girilen: <b>{analikSonrasiGun} gün</b>.</BilgiKutu>
+                <BilgiKutu renk="kirmizi">⚠️ Doğum sonrası raporu{analikOncesiGun === 0 ? " (doğum öncesi yoksa)" : ""} maksimum <b>{analikSonrasiMaxGun} gün</b> olabilir. Girilen: <b>{analikSonrasiGun} gün</b>.</BilgiKutu>
               )}
               {raporTuru === "analik" && toplamRaporGun > 168 && (
                 <BilgiKutu renk="kirmizi">⚠️ Analık raporu maksimum <b>24 hafta (168 gün)</b> olabilir. Girilen: <b>{toplamRaporGun} gün</b>. Hesaplama 168 gün üzerinden yapılır.</BilgiKutu>
