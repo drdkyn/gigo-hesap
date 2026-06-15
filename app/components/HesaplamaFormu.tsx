@@ -496,9 +496,9 @@ export default function HesaplamaFormu() {
               {toplamRaporGun > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
                   <Chip
-                    renk={raporTuru === "analik" && toplamRaporGun > 168 ? "var(--red)" : "var(--blue)"}
+                    renk={raporTuru === "analik" && (analikOncesiAsim || analikSonrasiAsim) ? "var(--red)" : "var(--blue)"}
                     etiket="Toplam Rapor"
-                    deger={`${toplamRaporGun} gün${raporTuru === "analik" && toplamRaporGun > 168 ? " ⚠️" : ""}`}
+                    deger={`${toplamRaporGun} gün`}
                   />
                   {tarihMod === "tarih" && <Chip renk="#475569" etiket="Bitiş" deger={raporBitis} />}
                   <Chip renk={onikiAyGun >= 90 ? "var(--green)" : "var(--red)"} etiket="12 Ay Prim" deger={`${onikiAyGun} gün`} />
@@ -513,9 +513,6 @@ export default function HesaplamaFormu() {
               )}
               {onikiAyGun > 0 && onikiAyGun < 90 && !isKazaMH && raporTuru !== "analik" && (
                 <BilgiKutu renk="kirmizi">⚠️ Son 12 ayda <b>{onikiAyGun} gün</b> prim var. Hak için <b>90 gün</b> gerekli.</BilgiKutu>
-              )}
-              {raporTuru === "analik" && toplamRaporGun > 168 && (
-                <BilgiKutu renk="kirmizi">⚠️ Analık raporu maksimum <b>168 gün (24 hafta)</b> olabilir. Girilen: <b>{toplamRaporGun} gün</b>. Hesaplama 168 gün üzerinden yapılacaktır.</BilgiKutu>
               )}
               {analikOncesiAsim && (
                 <BilgiKutu renk="kirmizi">⚠️ Doğum öncesi raporu maksimum <b>56 gün (8 hafta)</b> olabilir. Girilen: <b>{analikOncesiGun} gün</b>.</BilgiKutu>
