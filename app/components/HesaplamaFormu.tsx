@@ -340,20 +340,33 @@ export default function HesaplamaFormu() {
   const canliOrt = bazGun > 0 ? bazKazanc / bazGun : 0;
 
   // Analık dönem kontrolleri
-  const analikOncesiGun = satirlar
-    .filter(s => s.donemTip === "oncesi")
-    .reduce((sum, s) => {
-      if (tarihMod === "gun") return sum + (s.gun ?? 0);
-      if (s.baslangic && s.bitis) return sum + gunFarki(s.baslangic, s.bitis);
-      return sum;
-    }, 0);
-  const analikSonrasiGun = satirlar
-    .filter(s => s.donemTip === "sonrasi")
-    .reduce((sum, s) => {
-      if (tarihMod === "gun") return sum + (s.gun ?? 0);
-      if (s.baslangic && s.bitis) return sum + gunFarki(s.baslangic, s.bitis);
-      return sum;
-    }, 0);
+  // Analık gün hesabı
+  // Tarih modunda: AnalikSonuc'tan al (doğum öncesi/sonrası ayrı hesaplanmış)
+  // Normal modda: satirlar'dan hesapla
+  let analikOncesiGun = 0;
+  let analikSonrasiGun = 0;
+  
+  if (analikTarihModu && analikSonuc) {
+    // Tarih modu: doğrudan AnalikSonuc'tan
+    analikOncesiGun = analikSonuc.oncesiGun;
+    analikSonrasiGun = analikSonuc.sonrasiGun;
+  } else {
+    // Gun modu veya normal: satirlar'dan
+    analikOncesiGun = satirlar
+      .filter(s => s.donemTip === "oncesi")
+      .reduce((sum, s) => {
+        if (tarihMod === "gun") return sum + (s.gun ?? 0);
+        if (s.baslangic && s.bitis) return sum + gunFarki(s.baslangic, s.bitis);
+        return sum;
+      }, 0);
+    analikSonrasiGun = satirlar
+      .filter(s => s.donemTip === "sonrasi")
+      .reduce((sum, s) => {
+        if (tarihMod === "gun") return sum + (s.gun ?? 0);
+        if (s.baslangic && s.bitis) return sum + gunFarki(s.baslangic, s.bitis);
+        return sum;
+      }, 0);
+  }
   // Analık + tarih modunda AnalikHesap bileşeni kendi uyarılarını gösterir
   const analikTarihModu = raporTuru === "analik" && tarihMod === "tarih";
   const analikOncesiAsim = !analikTarihModu && raporTuru === "analik" && analikOncesiGun > 56;
