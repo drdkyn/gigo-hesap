@@ -145,23 +145,15 @@ export default function AnalikHesap({ onChange }: Props) {
     }
 
     // Geç doğum aşımı - ilk 2 gün ödenmez, kalanı aşım
-    // Ama doğum öncesi max'ı geçen kısım aşım
     let gecAsim = 0;
     if (dogumTarihi && dogumTarihi > tahmini40) {
       const gecGun = gunFarki(addDays(tahmini40, 1), dogumTarihi);
-      const gecAsimRaw = Math.max(0, gecGun - 2); // ilk 2 gün ödenmez
-      // Aşım = (geç aşım) - (doğum öncesi max'ı aşan kısım)
-      // Çalışır: doğumOncesiMax = aktarilanGun
-      // Çalışamaz: doğumOncesiMax = doğumOncesiMaxPotansiyel
-      const doğumOncesiMax = calisir ? aktGun : doğumOncesiMaxPotansiyel;
-      gecAsim = Math.max(0, gecAsimRaw - Math.max(0, doğumOncesiMax - 56));
+      gecAsim = Math.max(0, gecGun - 2); // ilk 2 gün ödenmez
     }
 
     setAktarilanGun(aktGun);
     setErkenGun(erken);
     setGecAsimGun(gecAsim);
-    setOncesiBaslangic(oBas);
-    setOncesiBitis(oBit);
 
     // Doğum sonrası: 16 hafta (112 gün) + aktarılan + erken + geç doğum aşımı
     // Toplam maks 168 (aktarılan+erken dahil), geç doğum aşımı ayrı sayılır
