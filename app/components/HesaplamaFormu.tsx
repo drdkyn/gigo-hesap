@@ -547,6 +547,15 @@ export default function HesaplamaFormu() {
               {onikiAyGun > 0 && onikiAyGun < 90 && !isKazaMH && raporTuru !== "analik" && (
                 <BilgiKutu renk="kirmizi">⚠️ Son 12 ayda <b>{onikiAyGun} gün</b> prim var. Hak için <b>90 gün</b> gerekli.</BilgiKutu>
               )}
+              {tarihMod === "tarih" && onikiAyGun > 0 && onikiAyGun < 180 && canliOrt > 0 && (() => {
+                const bitisD = new Date(raporBaslangic);
+                const asgariX2 = getGunlukAsgariUcret(bitisD) * 2;
+                return canliOrt > asgariX2 ? (
+                  <BilgiKutu renk="sari">
+                    ⚠️ Son 12 ayda <b>{onikiAyGun} gün</b> prim var (180 günden az). Günlük kazanç günlük asgari ücretin 2 katı olan <b>{fmt(asgariX2)} ₺</b> ile sınırlandırılacaktır.
+                  </BilgiKutu>
+                ) : null;
+              })()}
               {analikOncesiAsim && (
                 <BilgiKutu renk="kirmizi">⚠️ Doğum öncesi raporu maksimum <b>56 gün (8 hafta)</b> olabilir. Girilen: <b>{analikOncesiGun} gün</b>.</BilgiKutu>
               )}
@@ -772,7 +781,7 @@ export default function HesaplamaFormu() {
                     alt={sonuc.doksan_gun_sartiSaglandi ? "✓ 90 gün şartı OK" : "✗ Şart sağlanmadı"} />
                   <SonKart icon="💰" etiket="Günlük Esas Kazanç" deger={`${fmt(sonuc.gunlukKazancEsas)} ₺`}
                     renk={sonuc.asgariUcretUygulandimi ? "#d97706" : "var(--blue)"}
-                    alt={sonuc.asgariUcretUygulandimi ? "⚠️ Asgari ücret" : sonuc.ikiKatTavanUygulandimi ? "⚠️ 2× asgari" : sonuc.yuzElliTavanUygulandimi ? "⚠️ %150 tavan" : undefined} />
+                    alt={sonuc.asgariUcretUygulandimi ? "⚠️ Asgari ücret uygulandı" : sonuc.ikiKatTavanUygulandimi ? "⚠️ 180 gün altı — asgari×2 tavanı" : sonuc.yuzElliTavanUygulandimi ? "⚠️ %150 tavan uygulandı" : undefined} />
                 </div>
 
                 {/* Günlük oranlar */}
