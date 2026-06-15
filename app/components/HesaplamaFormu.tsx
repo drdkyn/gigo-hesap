@@ -162,46 +162,34 @@ export default function HesaplamaFormu() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--gray-bg)" }}>
 
-      {/* ── Başlık (full width) ── */}
-      <header style={{
+      {/* ── Başlık ── */}
+      <header className="site-header" style={{
         background: "linear-gradient(135deg, #1a4b8c 0%, #0d2d5e 100%)",
-        color: "#fff", padding: "0",
-        boxShadow: "0 4px 20px rgba(26,75,140,0.35)",
+        color: "#fff", boxShadow: "0 3px 16px rgba(26,75,140,0.35)",
       }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "18px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-          {/* İkon - beyaz kart üzerinde renkli */}
-          <div style={{
-            width: 52, height: 52, flexShrink: 0,
-            background: "#ffffff",
-            borderRadius: 14,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 30,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+        <div style={{ maxWidth: 1400, margin: "0 auto", padding: "10px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="header-ikon" style={{
+            width: 46, height: 46, flexShrink: 0, background: "#ffffff",
+            borderRadius: 12, display: "flex", alignItems: "center",
+            justifyContent: "center", fontSize: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
           }}>🩺</div>
           <div style={{ flex: 1 }}>
-            <h1 className="header-title" style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: "-0.3px" }}>
+            <h1 className="header-title" style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: "-0.3px" }}>
               SGK Geçici İş Göremezlik Ödeneği Hesaplama
             </h1>
-            <p className="header-sub" style={{ margin: "3px 0 0", fontSize: 11, opacity: 0.7 }}>
+            <p className="header-sub" style={{ margin: "2px 0 0", fontSize: 11, opacity: 0.7 }}>
               Hastalık · İş Kazası · Meslek Hastalığı · Analık
             </p>
-          </div>
-          {/* PC'de sağ bilgi */}
-          <div style={{ display: "none", textAlign: "right" }} className="pc-only-flex">
-            <div style={{ fontSize: 11, opacity: 0.65 }}>2026 Asgari Ücret</div>
-            <div style={{ fontSize: 16, fontWeight: 800 }}>33.030 ₺</div>
           </div>
         </div>
       </header>
 
       {/* ── Ana içerik ── */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 14px 40px" }}>
-
-        {/* PC'DE: Sol sütun (form) + Sağ sütun (sonuç sabit) */}
+      <div className="main-wrap" style={{ maxWidth: 1400, margin: "0 auto", padding: "12px 14px 32px" }}>
         <div className="pc-grid">
 
           {/* ── SOL / MOBİL TEK SÜTUN: Form ── */}
-          <div className="pc-left" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="pc-left" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
             {/* 1. Rapor Türü */}
             <Kart>
@@ -308,9 +296,10 @@ export default function HesaplamaFormu() {
                       const v = e.target.value;
                       handleGunChange(v === "" ? null : Math.max(1, parseInt(v) || 1));
                     }}
+                    className="gun-input"
                     style={{ ...inp, maxWidth: 180, fontSize: 22, fontWeight: 800, textAlign: "center" }}
                     placeholder="Gün giriniz" />
-                  <div style={{ marginTop: 10, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "14px 16px", fontSize: 14, color: "#1e40af", lineHeight: 1.7 }}>
+                  <div className="gun-bilgi" style={{ marginTop: 10, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "14px 16px", fontSize: 14, color: "#1e40af", lineHeight: 1.7 }}>
                     ℹ️ <b>Güncel asgari ücrete (2026) göre hesaplanacaktır.</b><br />
                     Detaylı hesap için <b>Tarih Gir</b> seçin.
                   </div>
@@ -443,11 +432,11 @@ export default function HesaplamaFormu() {
             )}
 
             {/* Hesapla butonu */}
-            <button onClick={handleHesapla} style={{
+            <button onClick={handleHesapla} className="hesapla-btn" style={{
               width: "100%", background: "linear-gradient(135deg, #1a4b8c, #0f3060)",
               color: "#fff", border: "none", borderRadius: 10,
-              padding: "15px", fontSize: 16, fontWeight: 800, cursor: "pointer",
-              boxShadow: "0 4px 15px rgba(26,75,140,0.4)",
+              padding: "13px", fontSize: 15, fontWeight: 800, cursor: "pointer",
+              boxShadow: "0 4px 14px rgba(26,75,140,0.4)",
             }}>🧮 Hesapla</button>
 
           </div>{/* / sol sütun */}
@@ -458,9 +447,9 @@ export default function HesaplamaFormu() {
             {/* PC'de sonuç yoksa placeholder */}
             {!sonuc && (
               <Kart>
-                <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--muted)" }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Hesaplama Sonucu</div>
-                  <div style={{ fontSize: 12 }}>Formu doldurup Hesapla butonuna basın.</div>
+                <div className="sonuc-placeholder" style={{ textAlign: "center", padding: "36px 16px", color: "var(--muted)" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Hesaplama Sonucu</div>
+                  <div style={{ fontSize: 11 }}>Formu doldurup Hesapla butonuna basın.</div>
                 </div>
               </Kart>
             )}
@@ -481,28 +470,28 @@ export default function HesaplamaFormu() {
                 ))}
 
                 {/* Toplam ödenek — büyük kart */}
-                <div style={{
+                <div className="toplam-kart" style={{
                   background: "linear-gradient(135deg, #c0392b 0%, #922b21 100%)",
-                  borderRadius: 16, padding: "24px 20px", color: "#fff", textAlign: "center",
-                  boxShadow: "0 6px 24px rgba(192,57,43,0.4)",
+                  borderRadius: 14, padding: "20px 18px", color: "#fff", textAlign: "center",
+                  boxShadow: "0 4px 18px rgba(192,57,43,0.35)",
                 }}>
-                  <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 6, letterSpacing: 1, textTransform: "uppercase" }}>Toplam Ödenek</div>
-                  <div className="toplam-rakam" style={{ fontSize: 36, fontWeight: 900, letterSpacing: "-1px" }}>{fmt(sonuc.toplamOdenek)} ₺</div>
+                  <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4, letterSpacing: 1, textTransform: "uppercase" }}>Toplam Ödenek</div>
+                  <div className="toplam-rakam" style={{ fontSize: 34, fontWeight: 900, letterSpacing: "-1px" }}>{fmt(sonuc.toplamOdenek)} ₺</div>
                   {sonuc.ayaktaToplamOdenek > 0 && sonuc.yatarakToplamOdenek > 0 && (
-                    <div style={{ fontSize: 12, opacity: 0.8, marginTop: 8, display: "flex", gap: 16, justifyContent: "center" }}>
+                    <div style={{ fontSize: 11, opacity: 0.8, marginTop: 6, display: "flex", gap: 14, justifyContent: "center" }}>
                       <span>Ayakta: {fmt(sonuc.ayaktaToplamOdenek)} ₺</span>
                       <span>Yatarak: {fmt(sonuc.yatarakToplamOdenek)} ₺</span>
                     </div>
                   )}
                   {(tarihMod === "gun" || kazancMod === "asgari") && (
-                    <div style={{ marginTop: 10, background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "6px 12px", fontSize: 11 }}>
+                    <div style={{ marginTop: 8, background: "rgba(255,255,255,0.15)", borderRadius: 7, padding: "5px 10px", fontSize: 10 }}>
                       ℹ️ Güncel asgari ücrete göre hesaplanmıştır
                     </div>
                   )}
                 </div>
 
                 {/* Özet kartlar — 2x2 grid */}
-                <div className="sonuc-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div className="sonuc-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <SonKart icon="📅" etiket="Rapor Günü"      deger={`${sonuc.toplamRaporGun} gün`} renk="var(--blue)" />
                   <SonKart icon="✅" etiket="Ödenecek Gün"    deger={`${sonuc.odenenGun} gün`}      renk="var(--green)" />
                   <SonKart icon="📊" etiket="12 Ay Prim Günü" deger={`${sonuc.toplamOnikiAyPrimGun} gün`}
@@ -515,21 +504,21 @@ export default function HesaplamaFormu() {
 
                 {/* Günlük oran tablosu */}
                 <Kart>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <div style={{ textAlign: "center", background: "#f0fdf4", borderRadius: 10, padding: "14px 10px" }}>
-                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>Ayakta Günlük</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "var(--green)" }}>{fmt(sonuc.ayaktaGunluk)} ₺</div>
-                      <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>× 2/3</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div className="oran-kutu" style={{ textAlign: "center", background: "#f0fdf4", borderRadius: 9, padding: "12px 8px" }}>
+                      <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 3 }}>Ayakta Günlük</div>
+                      <div className="oran-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--green)" }}>{fmt(sonuc.ayaktaGunluk)} ₺</div>
+                      <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 2 }}>× 2/3</div>
                     </div>
-                    <div style={{ textAlign: "center", background: "#eff6ff", borderRadius: 10, padding: "14px 10px" }}>
-                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>Yatarak Günlük</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "var(--blue)" }}>{fmt(sonuc.yatarakGunluk)} ₺</div>
-                      <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>× 1/2</div>
+                    <div className="oran-kutu" style={{ textAlign: "center", background: "#eff6ff", borderRadius: 9, padding: "12px 8px" }}>
+                      <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 3 }}>Yatarak Günlük</div>
+                      <div className="oran-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--blue)" }}>{fmt(sonuc.yatarakGunluk)} ₺</div>
+                      <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 2 }}>× 1/2</div>
                     </div>
                   </div>
                 </Kart>
 
-                <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 14px", fontSize: 11, color: "#92400e" }}>
+                <div className="not-kutu" style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "9px 12px", fontSize: 11, color: "#92400e" }}>
                   <strong>⚠️ Not:</strong> Bilgi amaçlıdır. Resmi ödenek tutarı SGK e-Ödenek sistemi tarafından belirlenir.
                 </div>
               </div>
@@ -553,16 +542,16 @@ function Kart({ children }: { children: React.ReactNode }) {
 }
 function Baslik({ no, metin }: { no: string; metin: string }) {
   return (
-    <h2 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700, color: "var(--blue)", borderLeft: "3px solid var(--blue)", paddingLeft: 9 }}>
-      <span style={{ opacity: 0.5, marginRight: 5 }}>{no}.</span>{metin}
+    <h2 className="bolum-baslik" style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 700, color: "var(--blue)", borderLeft: "3px solid var(--blue)", paddingLeft: 8 }}>
+      <span style={{ opacity: 0.5, marginRight: 4 }}>{no}.</span>{metin}
     </h2>
   );
 }
 function TogBtn({ aktif, renk, onClick, children, kucuk }: { aktif: boolean; renk: string; onClick: () => void; children: React.ReactNode; kucuk?: boolean }) {
   return (
-    <button onClick={onClick} style={{
-      padding: kucuk ? "6px 10px" : "10px 6px", borderRadius: 8, cursor: "pointer",
-      fontSize: kucuk ? 12 : 13, fontWeight: aktif ? 700 : 500, lineHeight: 1.4,
+    <button onClick={onClick} className={kucuk ? "tog-btn-kucuk" : "tog-btn"} style={{
+      padding: kucuk ? "6px 10px" : "9px 6px", borderRadius: 8, cursor: "pointer",
+      fontSize: kucuk ? 12 : 13, fontWeight: aktif ? 700 : 500, lineHeight: 1.3,
       background: aktif ? renk : "#f0f4fa", color: aktif ? "#fff" : renk,
       border: aktif ? `2px solid ${renk}` : "2px solid var(--border)",
     }}>{children}</button>
@@ -571,22 +560,22 @@ function TogBtn({ aktif, renk, onClick, children, kucuk }: { aktif: boolean; ren
 function BilgiKutu({ renk, children }: { renk: "mavi"|"sari"|"yesil"|"kirmizi"|"mor"; children: React.ReactNode }) {
   const r = { mavi:{bg:"#eff6ff",brd:"#bfdbfe",txt:"#1e40af"}, sari:{bg:"#fffbeb",brd:"#fde68a",txt:"#92400e"}, yesil:{bg:"#f0fdf4",brd:"#86efac",txt:"#166534"}, kirmizi:{bg:"#fef2f2",brd:"#fca5a5",txt:"#b91c1c"}, mor:{bg:"#faf5ff",brd:"#d8b4fe",txt:"#7e22ce"} };
   const { bg, brd, txt } = r[renk];
-  return <div style={{ background: bg, border: `1px solid ${brd}`, borderRadius: 7, padding: "8px 12px", fontSize: 12, color: txt, marginTop: 10, lineHeight: 1.5 }}>{children}</div>;
+  return <div className="bilgi-kutu" style={{ background: bg, border: `1px solid ${brd}`, borderRadius: 7, padding: "7px 11px", fontSize: 12, color: txt, marginTop: 8, lineHeight: 1.5 }}>{children}</div>;
 }
 function Chip({ renk, etiket, deger }: { renk: string; etiket: string; deger: string }) {
   return (
-    <div style={{ background: `${renk}15`, border: `1px solid ${renk}35`, borderRadius: 7, padding: "5px 10px", fontSize: 11 }}>
-      <div style={{ color: "var(--muted)" }}>{etiket}</div>
-      <div style={{ color: renk, fontWeight: 700, fontSize: 13 }}>{deger}</div>
+    <div className="chip" style={{ background: `${renk}15`, border: `1px solid ${renk}35`, borderRadius: 7, padding: "4px 9px", fontSize: 11 }}>
+      <div style={{ color: "var(--muted)", fontSize: 10 }}>{etiket}</div>
+      <div className="chip-val" style={{ color: renk, fontWeight: 700, fontSize: 12 }}>{deger}</div>
     </div>
   );
 }
 function SonKart({ icon, etiket, deger, renk, alt }: { icon: string; etiket: string; deger: string; renk: string; alt?: string }) {
   return (
-    <div style={{ background: "var(--card-bg)", border: `2px solid ${renk}25`, borderRadius: 10, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-      <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
-      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 2 }}>{etiket}</div>
-      <div style={{ fontSize: 15, fontWeight: 800, color: renk }}>{deger}</div>
+    <div className="son-kart" style={{ background: "var(--card-bg)", border: `2px solid ${renk}25`, borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+      <div className="son-kart-icon" style={{ fontSize: 18, marginBottom: 3 }}>{icon}</div>
+      <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 2 }}>{etiket}</div>
+      <div className="son-kart-val" style={{ fontSize: 14, fontWeight: 800, color: renk }}>{deger}</div>
       {alt && <div style={{ fontSize: 10, color: renk, marginTop: 2, opacity: 0.85 }}>{alt}</div>}
     </div>
   );

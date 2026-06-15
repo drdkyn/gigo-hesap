@@ -5,7 +5,6 @@
 :root {
   --blue:       #1a4b8c;
   --blue-dark:  #0f3060;
-  --blue-light: #2563b8;
   --green:      #1a7a4a;
   --red:        #c0392b;
   --gray-bg:    #f0f4f9;
@@ -13,55 +12,123 @@
   --text:       #1e293b;
   --muted:      #64748b;
   --card-bg:    #ffffff;
-  --shadow:     0 2px 10px rgba(0,0,0,0.07);
+  --shadow:     0 2px 8px rgba(0,0,0,0.07);
+  --header-h:   58px;
 }
 
-html { scroll-behavior: smooth; }
+html, body { height: 100%; }
 
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   background: var(--gray-bg);
   color: var(--text);
-  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
 
-/* ── PC: iki sütun düzeni ───────────────────────────────── */
+/* ── MOBİL: normal scroll ───────────────────────────────── */
+.pc-grid { display: flex; flex-direction: column; gap: 10px; }
+.kart    { padding: 12px 12px; }
+
+/* ── PC: viewport'a tam sığan iki sütun ─────────────────── */
 @media (min-width: 900px) {
+
+  /* Sayfa tam ekran, scroll yok */
+  body { overflow: hidden; }
+
+  /* Header sabit yükseklik */
+  .site-header { height: var(--header-h); }
+
+  /* İki sütun grid, kalan yüksekliği kapla */
+  .main-wrap {
+    height: calc(100vh - var(--header-h));
+    overflow: hidden;
+    padding: 10px 16px 10px !important;
+  }
+
   .pc-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    align-items: start;
+    gap: 14px;
+    height: 100%;
+    overflow: hidden;
   }
-  .pc-span-full { grid-column: 1 / -1; }
-  .pc-left  { grid-column: 1; }
-  .pc-right { grid-column: 2; }
 
-  /* PC'de kartlar biraz daha geniş padding */
-  .kart { padding: 20px 22px !important; }
+  /* Her sütun kendi içinde scroll */
+  .pc-left, .pc-right {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 
-  /* PC'de başlık daha büyük */
-  .header-title { font-size: 20px !important; }
-  .header-sub   { font-size: 12px !important; }
+  /* Scrollbar ince */
+  .pc-left::-webkit-scrollbar,
+  .pc-right::-webkit-scrollbar { width: 4px; }
+  .pc-left::-webkit-scrollbar-track,
+  .pc-right::-webkit-scrollbar-track { background: transparent; }
+  .pc-left::-webkit-scrollbar-thumb,
+  .pc-right::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-  /* PC'de sonuç kartları 4'lü */
-  .sonuc-grid { grid-template-columns: repeat(4, 1fr) !important; }
+  /* Kartlar PC'de kompakt */
+  .kart { padding: 10px 12px !important; }
 
-  /* PC'de toplam ödenek daha büyük */
-  .toplam-rakam { font-size: 40px !important; }
+  /* Bölüm başlıkları küçük */
+  .bolum-baslik { font-size: 11px !important; margin-bottom: 8px !important; }
+
+  /* Toggle butonlar küçük */
+  .tog-btn       { padding: 7px 4px !important; font-size: 12px !important; }
+  .tog-btn-kucuk { padding: 4px 7px !important; font-size: 11px !important; }
+
+  /* Bilgi kutuları küçük */
+  .bilgi-kutu { padding: 6px 10px !important; font-size: 11px !important; margin-top: 6px !important; }
+
+  /* Chip küçük */
+  .chip { padding: 3px 8px !important; font-size: 10px !important; }
+  .chip-val { font-size: 11px !important; }
+
+  /* Gün input küçük */
+  .gun-input { font-size: 16px !important; max-width: 140px !important; padding: 6px 10px !important; }
+
+  /* Toplam ödenek rakamı */
+  .toplam-rakam { font-size: 28px !important; }
+  .toplam-kart  { padding: 14px 16px !important; }
+
+  /* Sonuç özet kartları 2x2 → 2x2 kalır PC'de zaten dar */
+  .sonuc-grid { gap: 7px !important; }
+  .son-kart   { padding: 8px 10px !important; }
+  .son-kart-icon { font-size: 15px !important; margin-bottom: 2px !important; }
+  .son-kart-val  { font-size: 13px !important; }
+
+  /* Günlük oran kutuları */
+  .oran-kutu { padding: 8px 6px !important; }
+  .oran-val  { font-size: 15px !important; }
+
+  /* Hesapla butonu */
+  .hesapla-btn { padding: 10px !important; font-size: 14px !important; }
+
+  /* Bilgi modu kutusu (gün modunda mavi) */
+  .gun-bilgi { padding: 8px 12px !important; font-size: 11px !important; }
+
+  /* Başlık */
+  .header-title { font-size: 15px !important; }
+  .header-sub   { font-size: 10px !important; }
+  .header-ikon  { width: 38px !important; height: 38px !important; font-size: 20px !important; }
+
+  /* Not kutusu */
+  .not-kutu { padding: 7px 10px !important; font-size: 10px !important; }
+
+  /* Placeholder metin */
+  .sonuc-placeholder { padding: 24px 16px !important; }
 }
 
 /* ── Mobil ince ayarlar ─────────────────────────────────── */
 @media (max-width: 480px) {
-  .header-title { font-size: 15px !important; }
+  .header-title { font-size: 14px !important; }
   .mod-toggle button { font-size: 12px !important; padding: 9px 4px !important; }
-}
-
-/* ── PWA standalone mod ─────────────────────────────────── */
-@media (display-mode: standalone) {
-  body { padding-top: env(safe-area-inset-top); }
 }
