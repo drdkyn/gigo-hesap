@@ -137,8 +137,8 @@ export default function AnalikHesap({ onChange }: Props) {
     if (calisir && istirahStart > raporTarihi && dogumTarihi) {
       if (dogumTarihi <= istirahStart) {
         // Doğum istirahat başlamadan olmuş
-        // Aktarılan = rapor tarihi → tahmini 40. hafta (raporlu tüm dönem)
-        aktGun = gunFarki(raporTarihi, tahmini40) - 1;
+        // Aktarılan = rapor tarihi → doğum tarihi arası (çalışılan süre)
+        aktGun = gunFarki(raporTarihi, dogumTarihi) - 1;
       } else {
         // Normal: istirahat başlamadan doğuma kadar aktarılır
         aktGun = gunFarki(raporTarihi, istirahStart) - 1;
