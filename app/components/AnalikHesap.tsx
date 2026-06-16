@@ -136,9 +136,9 @@ export default function AnalikHesap({ onChange }: Props) {
 
     if (calisir && istirahStart > raporTarihi && dogumTarihi) {
       if (dogumTarihi <= istirahStart) {
-        // Doğum istirahat başlamadan olmuş
-        // Aktarılan = rapor tarihi → tahmini 40. hafta (raporlu tüm dönem)
-        aktGun = gunFarki(raporTarihi, tahmini40) - 1;
+        // Doğum istirahat başlamadan olmuş (erken doğum)
+        // Aktarılan = rapor tarihi → doğum tarihi arası (çalışılan süre)
+        aktGun = gunFarki(raporTarihi, dogumTarihi) - 1;
       } else {
         // Normal: istirahat başlamadan doğuma kadar aktarılır
         aktGun = gunFarki(raporTarihi, istirahStart) - 1;
@@ -148,8 +148,10 @@ export default function AnalikHesap({ onChange }: Props) {
     }
 
     // Erken doğum günleri
+    // Çalışır: aktarılan zaten rapor→doğum içeriyor, erken ayrı eklenmez (çift sayım olur)
+    // Çalışamaz: doğum öncesi 56 kullanıldı, erken kısım doğum sonrasına eklenir
     let erken = 0;
-    if (dogumTarihi && dogumTarihi < tahmini40) {
+    if (dogumTarihi && dogumTarihi < tahmini40 && !calisir) {
       erken = gunFarki(dogumTarihi, addDays(tahmini40, -1));
     }
 
