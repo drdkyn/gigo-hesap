@@ -279,6 +279,11 @@ export default function AnalikHesap({ onChange }: Props) {
   const tahminiDogum = raporTarihi && kacincuHafta ? addWeeks(raporTarihi, 40 - kacincuHafta) : "";
   const kayipHafta = kacincuHafta ? Math.max(0, kacincuHafta - 32) : 0;
   const doğumOncesiMaxPotansiyel = 56 - (kayipHafta * 7);
+  // Tahmini aktarma günü (rapor → istirahat başlangıcı, tahmini doğuma göre sabit)
+  const tahminiIstirahatBas = raporTarihi && kacincuHafta && (38 - kacincuHafta) > 0 
+    ? addWeeks(raporTarihi, 38 - kacincuHafta) : raporTarihi;
+  const tahminiAktarma = raporTarihi && tahminiIstirahatBas && tahminiIstirahatBas > raporTarihi
+    ? gunFarki(raporTarihi, tahminiIstirahatBas) - 1 : 0;
 
   // ── Render ────────────────────────────────────────────
   return (
@@ -341,9 +346,9 @@ export default function AnalikHesap({ onChange }: Props) {
                 {calisir ? (
                   <>
                     İstirahat başlangıcı: <b>{fmt_tarih(oncesiBaslangic)}</b>
-                    {aktarilanGun > 0 && (
+                    {tahminiAktarma > 0 && (
                       <span style={{ color: "#059669", marginLeft: 8 }}>
-                        (Süresinde doğum olursa +{aktarilanGun} gün doğum sonrasına aktarılacak ve ödenecek)
+                        (Süresinde doğum olursa +{tahminiAktarma} gün doğum sonrasına aktarılacak ve ödenecek)
                       </span>
                     )}
                   </>
