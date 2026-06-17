@@ -130,6 +130,9 @@ export default function HesaplamaFormu() {
   const [sonuc, setSonuc] = useState<HesaplaResult | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const [analikSonuc, setAnalikSonuc] = useState<AnalikSonuc | null>(null);
+  
+  // Açık olan date picker'ı takip et (format: "satir_id_baslangic" veya "satir_id_bitis")
+  const [openDatePicker, setOpenDatePicker] = useState<string | null>(null);
 
   /* Satır işlemleri */
   const updateSatir = (id: number, field: keyof RaporSatir, val: string | number | null) => {
@@ -520,38 +523,115 @@ export default function HesaplamaFormu() {
                         {/* Üst satır: numara + tarihler + sil */}
                         <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
                           <span style={{ fontSize: 10, color: "var(--muted)", minWidth: 12, flexShrink: 0 }}>{idx + 1}.</span>
-                          <input 
-                            type="text" 
-                            value={s.baslangicDisplay ?? ''}
-                            onChange={(e) => { 
-                              const formatted = formatDateInput(e.target.value);
-                              const parsed = parseDate(formatted);
-                              updateSatir(s.id, "baslangicDisplay", formatted);
-                              if (parsed) {
-                                updateSatir(s.id, "baslangic", parsed);
-                                handleBaslangicChange(parsed);
-                              }
-                            }}
-                            placeholder="GG.AA.YYYY"
-                            maxLength={10}
-                            inputMode="numeric"
-                            style={{ ...inp, padding: "4px 6px", fontSize: 12, flex: 1, minWidth: 0 }} />
+                          
+                          {/* Başlangıç tarihi input + takvim */}
+                          <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+                            <input 
+                              type="text" 
+                              value={s.baslangicDisplay ?? ''}
+                              onChange={(e) => { 
+                                const formatted = formatDateInput(e.target.value);
+                                const parsed = parseDate(formatted);
+                                updateSatir(s.id, "baslangicDisplay", formatted);
+                                if (parsed) {
+                                  updateSatir(s.id, "baslangic", parsed);
+                                  handleBaslangicChange(parsed);
+                                  setOpenDatePicker(null);
+                                }
+                              }}
+                              placeholder="GG.AA.YYYY"
+                              maxLength={10}
+                              inputMode="numeric"
+                              style={{ ...inp, padding: "4px 6px", paddingRight: 32, fontSize: 12, width: "100%", boxSizing: "border-box" }} />
+                            <button
+                              onClick={() => setOpenDatePicker(openDatePicker === `${s.id}_baslangic` ? null : `${s.id}_baslangic`)}
+                              style={{
+                                position: "absolute",
+                                right: 6,
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: 16,
+                                padding: "2px 4px",
+                                color: "var(--muted)",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                              title="Takvim aç"
+                            >📅</button>
+                            
+                            {/* Popup takvim - başlangıç */}
+                            {openDatePicker === `${s.id}_baslangic` && (
+                              <TarihPicker 
+                                tarih={s.baslangic}
+                                onChange={(yeniTarih) => {
+                                  updateSatir(s.id, "baslangic", yeniTarih);
+                                  const [y, m, g] = yeniTarih.split('-');
+                                  updateSatir(s.id, "baslangicDisplay", `${g}.${m}.${y}`);
+                                  handleBaslangicChange(yeniTarih);
+                                  setOpenDatePicker(null);
+                                }}
+                                onClose={() => setOpenDatePicker(null)}
+                              />
+                            )}
+                          </div>
+                          
                           <span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0 }}>→</span>
-                          <input 
-                            type="text" 
-                            value={s.bitisDisplay ?? ''}
-                            onChange={(e) => {
-                              const formatted = formatDateInput(e.target.value);
-                              const parsed = parseDate(formatted);
-                              updateSatir(s.id, "bitisDisplay", formatted);
-                              if (parsed) {
-                                updateSatir(s.id, "bitis", parsed);
-                              }
-                            }}
-                            placeholder="GG.AA.YYYY"
-                            maxLength={10}
-                            inputMode="numeric"
-                            style={{ ...inp, padding: "4px 6px", fontSize: 12, flex: 1, minWidth: 0 }} />
+                          
+                          {/* Bitiş tarihi input + takvim */}
+                          <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+                            <input 
+                              type="text" 
+                              value={s.bitisDisplay ?? ''}
+                              onChange={(e) => {
+                                const formatted = formatDateInput(e.target.value);
+                                const parsed = parseDate(formatted);
+                                updateSatir(s.id, "bitisDisplay", formatted);
+                                if (parsed) {
+                                  updateSatir(s.id, "bitis", parsed);
+                                  setOpenDatePicker(null);
+                                }
+                              }}
+                              placeholder="GG.AA.YYYY"
+                              maxLength={10}
+                              inputMode="numeric"
+                              style={{ ...inp, padding: "4px 6px", paddingRight: 32, fontSize: 12, width: "100%", boxSizing: "border-box" }} />
+                            <button
+                              onClick={() => setOpenDatePicker(openDatePicker === `${s.id}_bitis` ? null : `${s.id}_bitis`)}
+                              style={{
+                                position: "absolute",
+                                right: 6,
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: 16,
+                                padding: "2px 4px",
+                                color: "var(--muted)",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                              title="Takvim aç"
+                            >📅</button>
+                            
+                            {/* Popup takvim - bitiş */}
+                            {openDatePicker === `${s.id}_bitis` && (
+                              <TarihPicker 
+                                tarih={s.bitis}
+                                onChange={(yeniTarih) => {
+                                  updateSatir(s.id, "bitis", yeniTarih);
+                                  const [y, m, g] = yeniTarih.split('-');
+                                  updateSatir(s.id, "bitisDisplay", `${g}.${m}.${y}`);
+                                  setOpenDatePicker(null);
+                                }}
+                                onClose={() => setOpenDatePicker(null)}
+                              />
+                            )}
+                          </div>
+                          
                           {s.baslangic && s.bitis && (
                             <span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0, whiteSpace: "nowrap" }}>{gunFarki(s.baslangic, s.bitis)}g</span>
                           )}
@@ -960,6 +1040,122 @@ function SonKart({ icon, etiket, deger, renk, alt }: { icon: string; etiket: str
       <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 2 }}>{etiket}</div>
       <div className="son-kart-val" style={{ fontSize: 14, fontWeight: 800, color: renk }}>{deger}</div>
       {alt && <div style={{ fontSize: 10, color: renk, marginTop: 2, opacity: 0.85 }}>{alt}</div>}
+    </div>
+  );
+}
+
+/* ── Tarih Seçici (Takvim) ─────────────────────────────── */
+function TarihPicker({ tarih, onChange, onClose }: { tarih: string; onChange: (tarih: string) => void; onClose: () => void }) {
+  const [ayBasi, setAyBasi] = useState(() => {
+    if (tarih && tarih.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [y, m] = tarih.split('-');
+      return new Date(parseInt(y), parseInt(m) - 1, 1);
+    }
+    return new Date();
+  });
+
+  const gununAd = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cum"];
+  const ay = ayBasi.getMonth();
+  const yil = ayBasi.getFullYear();
+  
+  // Ayın ilk günü için hesapla
+  const ayBaşı = new Date(yil, ay, 1);
+  const ayBitiş = new Date(yil, ay + 1, 0);
+  const basıBoşluk = ayBaşı.getDay();
+  const toplamGun = ayBitiş.getDate();
+  
+  // Takvim gridini oluştur
+  const gunler: (number | null)[] = Array(basıBoşluk).fill(null);
+  for (let g = 1; g <= toplamGun; g++) {
+    gunler.push(g);
+  }
+  
+  const oncekiAy = () => {
+    setAyBasi(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+  const sonrakiAy = () => {
+    setAyBasi(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+  
+  const gunSec = (gun: number) => {
+    const seciliTarih = new Date(yil, ay, gun);
+    const isoStr = seciliTarih.toISOString().slice(0, 10);
+    onChange(isoStr);
+  };
+  
+  const AYLAR_TR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  
+  return (
+    <div style={{
+      position: "absolute",
+      bottom: -10,
+      left: 0,
+      transform: "translateY(100%)",
+      background: "#fff",
+      border: "1.5px solid var(--border)",
+      borderRadius: 8,
+      boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+      padding: "10px",
+      zIndex: 1000,
+      marginTop: 8,
+      minWidth: 220,
+    }}>
+      {/* Kapatma dış tıklaması için overlay */}
+      <div onClick={onClose} style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 999,
+      }} />
+      
+      <div style={{ position: "relative", zIndex: 1001 }}>
+        {/* Ay/Yıl başlığı ve nav */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <button onClick={oncekiAy} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: "2px 6px" }}>◀</button>
+          <div style={{ fontSize: 12, fontWeight: 700, textAlign: "center", flex: 1 }}>
+            {AYLAR_TR[ay]} {yil}
+          </div>
+          <button onClick={sonrakiAy} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: "2px 6px" }}>▶</button>
+        </div>
+        
+        {/* Gün başlıkları */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
+          {gununAd.map((gad, i) => (
+            <div key={i} style={{ textAlign: "center", fontSize: 9, fontWeight: 600, color: "var(--muted)", padding: "2px 0" }}>
+              {gad}
+            </div>
+          ))}
+        </div>
+        
+        {/* Günler */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+          {gunler.map((gun, i) => (
+            <button
+              key={i}
+              onClick={() => gun && gunSec(gun)}
+              disabled={gun === null}
+              style={{
+                padding: "4px 0",
+                fontSize: 11,
+                border: gun === null ? "none" : "1px solid var(--border)",
+                borderRadius: 4,
+                background: gun === null ? "transparent" : 
+                  tarih && tarih.startsWith(`${yil}-${String(ay + 1).padStart(2, '0')}-${String(gun).padStart(2, '0')}`) ? "var(--blue)" :
+                  "transparent",
+                color: gun === null ? "transparent" : 
+                  tarih && tarih.startsWith(`${yil}-${String(ay + 1).padStart(2, '0')}-${String(gun).padStart(2, '0')}`) ? "#fff" :
+                  "var(--text)",
+                cursor: gun === null ? "default" : "pointer",
+                fontWeight: tarih && tarih.startsWith(`${yil}-${String(ay + 1).padStart(2, '0')}-${String(gun).padStart(2, '0')}`) ? 700 : 400,
+              }}
+            >
+              {gun}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
