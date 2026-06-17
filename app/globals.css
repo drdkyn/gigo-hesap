@@ -87,7 +87,9 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
   .pc-left::-webkit-scrollbar-track,
   .pc-right::-webkit-scrollbar-track { background: transparent; }
   .pc-left::-webkit-scrollbar-thumb,
-  .pc-right::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+  .pc-right::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 6px; transition: background 0.2s; }
+  .pc-left::-webkit-scrollbar-thumb:hover,
+  .pc-right::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
   .kart { padding: 13px 15px !important; }
   .bolum-baslik { font-size: 13px !important; margin-bottom: 10px !important; }
