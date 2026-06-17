@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { formatDateInput, parseDate } from "@/lib/dateFormatter";
 import {
   hesapla, HesaplaResult, AyKazanc, RaporTuru, TedaviTuru, KarmaDonem
 } from "../lib/hesapla";
@@ -25,6 +26,11 @@ function ayEtiket(yyyymm: string) {
 }
 function getAsgariAy(yyyymm: string) { return getAsgariUcret(new Date(yyyymm + "-01")); }
 function fmt(n: number) { return n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmt_tarih(d: string): string {
+  if (!d) return "";
+  const [y, m, g] = d.split("-");
+  return `${g}.${m}.${y}`;
+}
 function addDays(dateStr: string, days: number) {
   const d = new Date(dateStr); d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
@@ -512,12 +518,26 @@ export default function HesaplamaFormu() {
                         {/* Üst satır: numara + tarihler + sil */}
                         <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
                           <span style={{ fontSize: 10, color: "var(--muted)", minWidth: 12, flexShrink: 0 }}>{idx + 1}.</span>
-                          <input type="date" value={s.baslangic}
-                            onChange={(e) => { updateSatir(s.id, "baslangic", e.target.value); handleBaslangicChange(e.target.value); }}
+                          <input 
+                            type="text" 
+                            value={fmt_tarih(s.baslangic)}
+                            onChange={(e) => { 
+                              const parsed = parseDate(formatDateInput(e.target.value));
+                              updateSatir(s.id, "baslangic", parsed);
+                              handleBaslangicChange(parsed);
+                            }}
+                            placeholder="GG.AA.YYYY"
+                            maxLength={10}
+                            inputMode="numeric"
                             style={{ ...inp, padding: "4px 6px", fontSize: 12, flex: 1, minWidth: 0 }} />
                           <span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0 }}>→</span>
-                          <input type="date" value={s.bitis} min={s.baslangic}
-                            onChange={(e) => updateSatir(s.id, "bitis", e.target.value)}
+                          <input 
+                            type="text" 
+                            value={fmt_tarih(s.bitis)}
+                            onChange={(e) => updateSatir(s.id, "bitis", parseDate(formatDateInput(e.target.value)))}
+                            placeholder="GG.AA.YYYY"
+                            maxLength={10}
+                            inputMode="numeric"
                             style={{ ...inp, padding: "4px 6px", fontSize: 12, flex: 1, minWidth: 0 }} />
                           {s.baslangic && s.bitis && (
                             <span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0, whiteSpace: "nowrap" }}>{gunFarki(s.baslangic, s.bitis)}g</span>
