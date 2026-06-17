@@ -577,7 +577,12 @@ function SatirListesi({ satirlar, donemBas, donemBit, onUpdate, onAdd, onRemove 
               <input 
                 type="text" 
                 value={fmt_tarih(s.baslangic)}
-                onChange={e => onUpdate(s.id, "baslangic", parseDate(formatDateInput(e.target.value)))}
+                onChange={e => {
+                  const formatted = formatDateInput(e.target.value);
+                  const parsed = parseDate(formatted);
+                  // Tam tarih ise state'e set et, yoksa sadece display'e
+                  onUpdate(s.id, "baslangic", parsed || s.baslangic);
+                }}
                 placeholder="GG.AA.YYYY"
                 maxLength={10}
                 inputMode="numeric"
@@ -587,7 +592,11 @@ function SatirListesi({ satirlar, donemBas, donemBit, onUpdate, onAdd, onRemove 
               <input 
                 type="text" 
                 value={fmt_tarih(s.bitis)}
-                onChange={e => onUpdate(s.id, "bitis", parseDate(formatDateInput(e.target.value)))}
+                onChange={e => {
+                  const formatted = formatDateInput(e.target.value);
+                  const parsed = parseDate(formatted);
+                  onUpdate(s.id, "bitis", parsed || s.bitis);
+                }}
                 placeholder="GG.AA.YYYY"
                 maxLength={10}
                 inputMode="numeric"
