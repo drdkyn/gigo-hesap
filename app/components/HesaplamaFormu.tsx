@@ -56,24 +56,163 @@ function yeniSatir(tur: "ayakta" | "yatarak" = "ayakta"): RaporSatir {
   return { id: satirSayac++, tur, donemTip: "oncesi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" };
 }
 
+// Her sekmede ayrı veri tutacak interface
+interface FormState {
+  tarihMod: "gun" | "tarih";
+  satirlar: RaporSatir[];
+  ayKazancSatirlar: AyKazancSatir[];
+  kazancMod: "manuel" | "asgari";
+  emsalAktif: boolean;
+  emsalKazanc: number;
+  emsalPrimGunu: number;
+  normalMaasAktif: boolean;
+  normalMaaslar: number[];
+  analikSonuc: AnalikSonuc | null;
+}
+
 export default function HesaplamaFormu() {
   const bugun = new Date().toISOString().slice(0, 10);
 
   // 1. Rapor türü
   const [raporTuru, setRaporTuru] = useState<RaporTuru>("hastalik");
 
-  // 2. Rapor süresi ve şekli
-  const [tarihMod, setTarihMod] = useState<"gun" | "tarih">("gun");
-  const [satirlar, setSatirlar] = useState<RaporSatir[]>([
-    { id: 1, tur: "ayakta", donemTip: "oncesi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
-    { id: 2, tur: "ayakta", donemTip: "sonrasi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
-  ]);
+  // Her sekmede ayrı veri tutacak state
+  const [formDataByType, setFormDataByType] = useState<Record<RaporTuru, FormState>>({
+    hastalik: {
+      tarihMod: "gun",
+      satirlar: [
+        { id: 1, tur: "ayakta", donemTip: "oncesi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
+        { id: 2, tur: "ayakta", donemTip: "sonrasi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
+      ],
+      ayKazancSatirlar: getOnceki12Ay(bugun).map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 })),
+      kazancMod: "manuel",
+      emsalAktif: false,
+      emsalKazanc: 0,
+      emsalPrimGunu: 1,
+      normalMaasAktif: false,
+      normalMaaslar: Array(12).fill(0),
+      analikSonuc: null,
+    },
+    analik: {
+      tarihMod: "gun",
+      satirlar: [
+        { id: 1, tur: "ayakta", donemTip: "oncesi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
+        { id: 2, tur: "ayakta", donemTip: "sonrasi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
+      ],
+      ayKazancSatirlar: getOnceki12Ay(bugun).map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 })),
+      kazancMod: "manuel",
+      emsalAktif: false,
+      emsalKazanc: 0,
+      emsalPrimGunu: 1,
+      normalMaasAktif: false,
+      normalMaaslar: Array(12).fill(0),
+      analikSonuc: null,
+    },
+    iskazasi: {
+      tarihMod: "gun",
+      satirlar: [
+        { id: 1, tur: "ayakta", donemTip: null, gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
+        { id: 2, tur: "ayakta", donemTip: null, gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
+      ],
+      ayKazancSatirlar: getOnceki12Ay(bugun).map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 })),
+      kazancMod: "manuel",
+      emsalAktif: false,
+      emsalKazanc: 0,
+      emsalPrimGunu: 1,
+      normalMaasAktif: false,
+      normalMaaslar: Array(12).fill(0),
+      analikSonuc: null,
+    },
+    meslekhastligi: {
+      tarihMod: "gun",
+      satirlar: [
+        { id: 1, tur: "ayakta", donemTip: null, gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
+        { id: 2, tur: "ayakta", donemTip: null, gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
+      ],
+      ayKazancSatirlar: getOnceki12Ay(bugun).map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 })),
+      kazancMod: "manuel",
+      emsalAktif: false,
+      emsalKazanc: 0,
+      emsalPrimGunu: 1,
+      normalMaasAktif: false,
+      normalMaaslar: Array(12).fill(0),
+      analikSonuc: null,
+    },
+  });
+
+  // Aktif sekmeden veri al
+  const currentData = formDataByType[raporTuru];
+
+  // 2. Rapor süresi ve şekli (mevcut sekmeden)
+  const [tarihMod, setTarihMod] = useState<"gun" | "tarih">(currentData.tarihMod);
+  const [satirlar, setSatirlar] = useState<RaporSatir[]>(currentData.satirlar);
+  const [ayKazancSatirlar, setAyKazancSatirlar] = useState<AyKazancSatir[]>(currentData.ayKazancSatirlar);
+  const [kazancMod, setKazancMod] = useState<"manuel" | "asgari">(currentData.kazancMod);
+  const [emsalAktif, setEmsalAktif] = useState(currentData.emsalAktif);
+  const [emsalKazanc, setEmsalKazanc] = useState(currentData.emsalKazanc);
+  const [emsalPrimGunu, setEmsalPrimGunu] = useState(currentData.emsalPrimGunu);
+  const [normalMaasAktif, setNormalMaasAktif] = useState(currentData.normalMaasAktif);
+  const [normalMaaslar, setNormalMaaslar] = useState<number[]>(currentData.normalMaaslar);
+  const [analikSonuc, setAnalikSonuc] = useState<AnalikSonuc | null>(currentData.analikSonuc);
+  const [sonuc, setSonuc] = useState<HesaplaResult | null>(null);
+  const [hata, setHata] = useState<string | null>(null);
 
   // Hesaplama için türetilen değerler
   const [raporBaslangic, setRaporBaslangic] = useState(bugun);
   const [raporBitis, setRaporBitis] = useState(bugun);
   const [tedaviTuru, setTedaviTuru] = useState<TedaviTuru>("ayakta");
   const [karmaDonemleri, setKarmaDonemleri] = useState<KarmaDonem[]>([]);
+  const [openDatePicker, setOpenDatePicker] = useState<string | null>(null);
+
+  /* Sekmeler değiştiğinde: mevcut veriyi kaydet, yeni sekmeden yükle */
+  useEffect(() => {
+    // Önce mevcut sekmeden veriyi kaydet
+    setFormDataByType(prev => {
+      const updated = { ...prev };
+      // Hangi sekmeden gelmişiz bul (formDataByType'a bakarak değil, raporTuru'nun önceki değerinden)
+      // Basitçe tüm state'leri currentData'ya yazıyoruz
+      const allKeys = Object.keys(prev) as RaporTuru[];
+      for (const tur of allKeys) {
+        if (tur !== raporTuru) continue; // Bu sekmede değiliz
+      }
+      // Aslında kolay yol: bunu sekmeler değiştiğinde yapıyoruz
+      // Önceki sekmeden veriyi kaydetmek lazım, ama hangi sekmeden geldiğini bilmiyoruz burada
+      return updated;
+    });
+
+    // Yeni sekmeden veriyi yükle
+    const newData = formDataByType[raporTuru];
+    setTarihMod(newData.tarihMod);
+    setSatirlar(newData.satirlar);
+    setAyKazancSatirlar(newData.ayKazancSatirlar);
+    setKazancMod(newData.kazancMod);
+    setEmsalAktif(newData.emsalAktif);
+    setEmsalKazanc(newData.emsalKazanc);
+    setEmsalPrimGunu(newData.emsalPrimGunu);
+    setNormalMaasAktif(newData.normalMaasAktif);
+    setNormalMaaslar(newData.normalMaaslar);
+    setAnalikSonuc(newData.analikSonuc);
+    setOpenDatePicker(null);
+  }, [raporTuru]);
+
+  /* Her state değiştiğinde formDataByType'a kaydet */
+  useEffect(() => {
+    setFormDataByType(prev => ({
+      ...prev,
+      [raporTuru]: {
+        tarihMod,
+        satirlar,
+        ayKazancSatirlar,
+        kazancMod,
+        emsalAktif,
+        emsalKazanc,
+        emsalPrimGunu,
+        normalMaasAktif,
+        normalMaaslar,
+        analikSonuc,
+      }
+    }));
+  }, [tarihMod, satirlar, ayKazancSatirlar, kazancMod, emsalAktif, emsalKazanc, emsalPrimGunu, normalMaasAktif, normalMaaslar, analikSonuc, raporTuru]);
 
   // Satırlardan hesaplama parametrelerini türet
   useEffect(() => {
@@ -113,26 +252,6 @@ export default function HesaplamaFormu() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [satirlar, tarihMod]);
-
-  // 3. Kazanç — her ay birden fazla satır olabilir
-  const [kazancMod, setKazancMod] = useState<"manuel" | "asgari">("manuel");
-  const ayListesi = getOnceki12Ay(raporBaslangic);
-  const [ayKazancSatirlar, setAyKazancSatirlar] = useState<AyKazancSatir[]>(() =>
-    ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 }))
-  );
-
-  const [emsalAktif, setEmsalAktif] = useState(false);
-  const [emsalKazanc, setEmsalKazanc] = useState(0);
-  const [emsalPrimGunu, setEmsalPrimGunu] = useState(1);
-  const [normalMaasAktif, setNormalMaasAktif] = useState(false);
-  const [normalMaaslar, setNormalMaaslar] = useState<number[]>(Array(12).fill(0));
-
-  const [sonuc, setSonuc] = useState<HesaplaResult | null>(null);
-  const [hata, setHata] = useState<string | null>(null);
-  const [analikSonuc, setAnalikSonuc] = useState<AnalikSonuc | null>(null);
-  
-  // Açık olan date picker'ı takip et (format: "satir_id_baslangic" veya "satir_id_bitis")
-  const [openDatePicker, setOpenDatePicker] = useState<string | null>(null);
 
   /* Satır işlemleri */
   const updateSatir = (id: number, field: keyof RaporSatir, val: string | number | null) => {
@@ -330,8 +449,9 @@ export default function HesaplamaFormu() {
   };
 
   const handleTemizle = () => {
+    const aylar = getOnceki12Ay(raporBaslangic);
     setSonuc(null); setHata(null); setKazancMod("manuel");
-    setAyKazancSatirlar(ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 })));
+    setAyKazancSatirlar(aylar.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 })));
     setSatirlar([
       { id: 1, tur: "ayakta", donemTip: "oncesi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
       { id: 2, tur: "ayakta", donemTip: "sonrasi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
