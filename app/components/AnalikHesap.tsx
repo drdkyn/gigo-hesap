@@ -180,8 +180,23 @@ export default function AnalikHesap({ onChange }: Props) {
       const sBit = addDays(dogumTarihi, sonrasiToplamGun - 1);
       setSonrasiBaslangic(sBas);
       setSonrasiBitis(sBit);
-      setOncesiSatirlar([yeniDonemSatir(oBas, oBit || oBas, "ayakta")]);
-      setSonrasiSatirlar([yeniDonemSatir(sBas, sBit, "ayakta")]);
+      // Doğum öncesi satırları, dönem sınırlarına (oBas/oBit) göre senkronize et.
+      // Kullanıcının eklediği/böldüğü satırlar varsa korunur; sadece ilk satırın
+      // başlangıcı ve son satırın bitişi yeni dönem sınırlarına çekilir.
+      setOncesiSatirlar(prev => {
+        if (!prev.length) return [yeniDonemSatir(oBas, oBit || oBas, "ayakta")];
+        const k = prev.map(s => ({ ...s }));
+        k[0].baslangic = oBas;
+        k[k.length - 1].bitis = oBit || oBas;
+        return k;
+      });
+      setSonrasiSatirlar(prev => {
+        if (!prev.length) return [yeniDonemSatir(sBas, sBit, "ayakta")];
+        const k = prev.map(s => ({ ...s }));
+        k[0].baslangic = sBas;
+        k[k.length - 1].bitis = sBit;
+        return k;
+      });
     } else {
       setSonrasiBaslangic(""); setSonrasiBitis("");
       setOncesiSatirlar(oBas ? [yeniDonemSatir(oBas, oBas, "ayakta")] : []);
