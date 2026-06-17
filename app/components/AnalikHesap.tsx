@@ -127,8 +127,12 @@ export default function AnalikHesap({ onChange }: Props) {
     // Çalışır: doğum öncesi = rapor → istirahat başlangıcı (veya doğuma kadar)
     let oBit = "";
     if (!calisir) {
-      // Çalışamaz: doğum öncesi max 56 gün (veya kayıp haftaya göre az)
-      oBit = addDays(oBas, doğumOncesiMaxPotansiyel - 1); // -1 çünkü inclusive
+      // Çalışamaz: doğum tarihinden bir gün önceye kadar (dinamik, doğum tarihi değişince güncellenir)
+      if (dogumTarihi) {
+        oBit = addDays(dogumTarihi, -1); // Doğum tarihinden bir gün önce
+      } else {
+        oBit = addDays(oBas, doğumOncesiMaxPotansiyel - 1); // Doğum tarihi girilmeden max 56 gün
+      }
     } else if (dogumTarihi) {
       // Çalışır: doğum öncesi = rapor → doğumdan önceki gün
       oBit = addDays(dogumTarihi, -1);
