@@ -303,16 +303,16 @@ export default function AnalikHesap({ onChange }: Props) {
   const oncesiAsim = oncesiGun > 56;
   const sonrasiAsim = false;
   const toplamAsim = (oncesiGun + sonrasiGun) > 168;
-  const dogumOncesiErken = oncesiRaporVar && dogumTarihi && oncesiBaslangic && dogumTarihi <= oncesiBaslangic;
+  const dogumOncesiErken = oncesiRaporVar && dogumTarihi && oncesiBaslangic && parseDate(dogumTarihi) <= oncesiBaslangic;
   const gecAsimVar = gecAsimGun > 0;
-  const tahminiDogum = raporTarihi && kacincuHafta ? addWeeks(raporTarihi, 40 - kacincuHafta) : "";
+  const tahminiDogum = raporTarihi && kacincuHafta ? addWeeks(parseDate(raporTarihi), 40 - kacincuHafta) : "";
   const kayipHafta = kacincuHafta ? Math.max(0, kacincuHafta - 32) : 0;
   const doğumOncesiMaxPotansiyel = 56 - (kayipHafta * 7);
   // Tahmini aktarma günü (rapor → istirahat başlangıcı, tahmini doğuma göre sabit)
   const tahminiIstirahatBas = raporTarihi && kacincuHafta && (38 - kacincuHafta) > 0 
-    ? addWeeks(raporTarihi, 38 - kacincuHafta) : raporTarihi;
-  const tahminiAktarma = raporTarihi && tahminiIstirahatBas && tahminiIstirahatBas > raporTarihi
-    ? gunFarki(raporTarihi, tahminiIstirahatBas) - 1 : 0;
+    ? addWeeks(parseDate(raporTarihi), 38 - kacincuHafta) : parseDate(raporTarihi);
+  const tahminiAktarma = raporTarihi && tahminiIstirahatBas && tahminiIstirahatBas > parseDate(raporTarihi)
+    ? gunFarki(parseDate(raporTarihi), tahminiIstirahatBas) - 1 : 0;
 
   // ── Render ────────────────────────────────────────────
   return (
