@@ -227,7 +227,8 @@ export default function AnalikHesap({ onChange }: Props) {
       });
       return;
     }
-    if (!oncesiBaslangic || !dogTarihParsed2) { onChange(null); return; }
+    // Doğum öncesi raporu VAR: 1. useEffect'in çalışma sonuçlarını kontrol et
+    if (!dogTarihParsed2 || !oncesiBaslangic) { onChange(null); return; }
     const oBit = oncesiBitis || addDays(dogTarihParsed2, -1);
     onChange({
       oncesiBaslangic, oncesiBitis: oBit,

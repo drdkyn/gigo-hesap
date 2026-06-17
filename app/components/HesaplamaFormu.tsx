@@ -522,7 +522,7 @@ export default function HesaplamaFormu() {
                           <span style={{ fontSize: 10, color: "var(--muted)", minWidth: 12, flexShrink: 0 }}>{idx + 1}.</span>
                           <input 
                             type="text" 
-                            value={s.baslangicDisplay || ''}
+                            value={s.baslangicDisplay ?? ''}
                             onChange={(e) => { 
                               const formatted = formatDateInput(e.target.value);
                               const parsed = parseDate(formatted);
@@ -539,7 +539,7 @@ export default function HesaplamaFormu() {
                           <span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0 }}>→</span>
                           <input 
                             type="text" 
-                            value={s.bitisDisplay || ''}
+                            value={s.bitisDisplay ?? ''}
                             onChange={(e) => {
                               const formatted = formatDateInput(e.target.value);
                               const parsed = parseDate(formatted);
