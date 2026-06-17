@@ -82,13 +82,17 @@ export default function AnalikHesap({ onChange }: Props) {
 
   // ── Hesapla ───────────────────────────────────────────
   useEffect(() => {
+    // State'de GG.AA.YYYY, hesaplamada YYYY-MM-DD kullanacağız
+    const rapTarihParsed = parseDate(raporTarihi);
+    const dogTarihParsed = parseDate(dogumTarihi);
+
     // Doğum öncesi raporu yok → sadece 112 gün doğum sonrası
     if (!oncesiRaporVar) {
       setOncesiBaslangic(""); setOncesiBitis("");
       setAktarilanGun(0); setErkenGun(0); setGecAsimGun(0);
-      if (dogumTarihi) {
-        const sBas = dogumTarihi;
-        const sBit = addDays(dogumTarihi, 112); // 112 gün sonrası
+      if (dogTarihParsed) {
+        const sBas = dogTarihParsed;
+        const sBit = addDays(dogTarihParsed, 112); // 112 gün sonrası
         setSonrasiBaslangic(sBas);
         setSonrasiBitis(sBit);
         setSonrasiSatirlar([yeniDonemSatir(sBas, sBit, "ayakta")]);
@@ -100,7 +104,7 @@ export default function AnalikHesap({ onChange }: Props) {
       return;
     }
 
-    if (!raporTarihi || kacincuHafta === null || calisir === null) {
+    if (!rapTarihParsed || kacincuHafta === null || calisir === null) {
       setOncesiBaslangic(""); setOncesiBitis(""); setSonrasiBaslangic(""); setSonrasiBitis("");
       onChange(null); return;
     }
@@ -111,16 +115,16 @@ export default function AnalikHesap({ onChange }: Props) {
     const doğumOncesiMaxPotansiyel = 56 - (kayipHafta * 7); // 32. hafta = 56, 33. = 49, 34. = 42 vb
 
     // Tahmini doğum tarihi (40. hafta)
-    const tahmini40 = addWeeks(raporTarihi, 40 - kacincuHafta);
+    const tahmini40 = addWeeks(rapTarihParsed, 40 - kacincuHafta);
 
     let istirahStart: string;
     let aktGun = 0;
 
     if (!calisir) {
-      istirahStart = raporTarihi;
+      istirahStart = rapTarihParsed;
     } else {
       const haftaFark = 38 - kacincuHafta;
-      istirahStart = haftaFark <= 0 ? raporTarihi : addWeeks(raporTarihi, haftaFark);
+      istirahStart = haftaFark <= 0 ? rapTarihParsed : addWeeks(rapTarihParsed, haftaFark);
     }
 
     const oBas = istirahStart;
@@ -129,24 +133,24 @@ export default function AnalikHesap({ onChange }: Props) {
     let oBit = "";
     if (!calisir) {
       // Çalışamaz: doğum tarihinden bir gün önceye kadar (dinamik, doğum tarihi değişince güncellenir)
-      if (dogumTarihi) {
-        oBit = addDays(dogumTarihi, -1); // Doğum tarihinden bir gün önce
+      if (dogTarihParsed) {
+        oBit = addDays(dogTarihParsed, -1); // Doğum tarihinden bir gün önce
       } else {
         oBit = addDays(oBas, doğumOncesiMaxPotansiyel - 1); // Doğum tarihi girilmeden max 56 gün
       }
-    } else if (dogumTarihi) {
+    } else if (dogTarihParsed) {
       // Çalışır: doğum öncesi = rapor → doğumdan önceki gün
-      oBit = addDays(dogumTarihi, -1);
+      oBit = addDays(dogTarihParsed, -1);
     }
 
-    if (calisir && istirahStart > raporTarihi && dogumTarihi) {
-      if (dogumTarihi <= istirahStart) {
+    if (calisir && istirahStart > rapTarihParsed && dogTarihParsed) {
+      if (dogTarihParsed <= istirahStart) {
         // Doğum istirahat başlamadan olmuş
         // Aktarılan = rapor tarihi → doğum tarihi arası (çalışılan süre)
-        aktGun = gunFarki(raporTarihi, dogumTarihi) - 1;
+        aktGun = gunFarki(rapTarihParsed, dogTarihParsed) - 1;
       } else {
         // Normal: istirahat başlamadan doğuma kadar aktarılır
-        aktGun = gunFarki(raporTarihi, istirahStart) - 1;
+        aktGun = gunFarki(rapTarihParsed, istirahStart) - 1;
       }
     } else {
       aktGun = 0;
@@ -154,14 +158,14 @@ export default function AnalikHesap({ onChange }: Props) {
 
     // Erken doğum günleri
     let erken = 0;
-    if (dogumTarihi && dogumTarihi < tahmini40) {
-      erken = gunFarki(dogumTarihi, addDays(tahmini40, -1));
+    if (dogTarihParsed && dogTarihParsed < tahmini40) {
+      erken = gunFarki(dogTarihParsed, addDays(tahmini40, -1));
     }
 
     // Geç doğum aşımı - ilk 2 gün ödenmez, kalanı aşım
     let gecAsim = 0;
-    if (dogumTarihi && dogumTarihi > tahmini40) {
-      const gecGun = gunFarki(addDays(tahmini40, 1), dogumTarihi);
+    if (dogTarihParsed && dogTarihParsed > tahmini40) {
+      const gecGun = gunFarki(addDays(tahmini40, 1), dogTarihParsed);
       gecAsim = Math.max(0, gecGun - 2); // ilk 2 gün ödenmez
     }
 
@@ -173,12 +177,12 @@ export default function AnalikHesap({ onChange }: Props) {
 
     // Doğum sonrası: 16 hafta (112 gün) + aktarılan + erken (168 sınırında)
     // Geç doğum aşımı ayrı sayılır (168 dışında ödenir, tarih hesabında dahil değil)
-    if (dogumTarihi) {
-      const sBas = dogumTarihi;
+    if (dogTarihParsed) {
+      const sBas = dogTarihParsed;
       // 112 + aktarılan + erken gün (168 sınırına dahil) — gecAsim dahil ETMİ
       const sonrasiToplamGun = 112 + aktGun + erken;
       // gunFarki inclusive olduğu için -1 ekle
-      const sBit = addDays(dogumTarihi, sonrasiToplamGun - 1);
+      const sBit = addDays(dogTarihParsed, sonrasiToplamGun - 1);
       setSonrasiBaslangic(sBas);
       setSonrasiBitis(sBit);
       // Doğum öncesi satırları, dönem sınırlarına (oBas/oBit) göre senkronize et.
@@ -347,6 +351,11 @@ export default function AnalikHesap({ onChange }: Props) {
                   placeholder="32-41"
                   onChange={e => setKacincuHafta(parseInt(e.target.value) || null)}
                   style={inp} />
+                {raporTarihi && !kacincuHafta && (
+                  <div style={{ fontSize: 11, color: "#b91c1c", marginTop: 4, fontWeight: 600 }}>
+                    ⚠️ Hafta seçilmesi zorunlu
+                  </div>
+                )}
               </div>
             </div>
 
