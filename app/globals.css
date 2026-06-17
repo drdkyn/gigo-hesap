@@ -62,7 +62,7 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
   .pc-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 24px;
     height: 100%;
     overflow: hidden;
   }
@@ -78,8 +78,8 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
   }
 
   .pc-left {
-    border-right: 2px solid #d1dce8;
-    padding-right: 16px;
+    border-right: 4px solid #d1dce8;
+    padding-right: 20px;
   }
 
   .pc-left::-webkit-scrollbar,
