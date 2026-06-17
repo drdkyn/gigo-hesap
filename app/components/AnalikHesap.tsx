@@ -212,8 +212,12 @@ export default function AnalikHesap({ onChange }: Props) {
 
   // Dışarıya bildir
   useEffect(() => {
+    // State'de GG.AA.YYYY, hesaplamada YYYY-MM-DD kullanacağız
+    const dogTarihParsed2 = parseDate(dogumTarihi);
+    const rapTarihParsed2 = parseDate(raporTarihi);
+
     if (!oncesiRaporVar) {
-      if (!dogumTarihi) { onChange(null); return; }
+      if (!dogTarihParsed2) { onChange(null); return; }
       onChange({
         oncesiBaslangic: "", oncesiBitis: "", oncesiGun: 0,
         sonrasiBaslangic, sonrasiBitis,
@@ -223,8 +227,8 @@ export default function AnalikHesap({ onChange }: Props) {
       });
       return;
     }
-    if (!oncesiBaslangic || !dogumTarihi) { onChange(null); return; }
-    const oBit = oncesiBitis || addDays(dogumTarihi, -1);
+    if (!oncesiBaslangic || !dogTarihParsed2) { onChange(null); return; }
+    const oBit = oncesiBitis || addDays(dogTarihParsed2, -1);
     onChange({
       oncesiBaslangic, oncesiBitis: oBit,
       oncesiGun: Math.min(gunFarki(oncesiBaslangic, oBit), 56),
