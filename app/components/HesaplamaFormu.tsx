@@ -45,13 +45,15 @@ interface RaporSatir {
   tur: "ayakta" | "yatarak";
   donemTip: "oncesi" | "sonrasi" | null;
   gun: number | null;
-  baslangic: string;
-  bitis: string;
+  baslangic: string;     // YYYY-MM-DD (hesaplama için)
+  baslangicDisplay: string;  // GG.AA.YYYY (display için)
+  bitis: string;         // YYYY-MM-DD (hesaplama için)
+  bitisDisplay: string;  // GG.AA.YYYY (display için)
 }
 
 let satirSayac = 3;
 function yeniSatir(tur: "ayakta" | "yatarak" = "ayakta"): RaporSatir {
-  return { id: satirSayac++, tur, donemTip: "oncesi", gun: null, baslangic: "", bitis: "" };
+  return { id: satirSayac++, tur, donemTip: "oncesi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" };
 }
 
 export default function HesaplamaFormu() {
@@ -63,8 +65,8 @@ export default function HesaplamaFormu() {
   // 2. Rapor süresi ve şekli
   const [tarihMod, setTarihMod] = useState<"gun" | "tarih">("gun");
   const [satirlar, setSatirlar] = useState<RaporSatir[]>([
-    { id: 1, tur: "ayakta", donemTip: "oncesi", gun: null, baslangic: "", bitis: "" },
-    { id: 2, tur: "ayakta", donemTip: "sonrasi", gun: null, baslangic: "", bitis: "" },
+    { id: 1, tur: "ayakta", donemTip: "oncesi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
+    { id: 2, tur: "ayakta", donemTip: "sonrasi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
   ]);
 
   // Hesaplama için türetilen değerler
@@ -259,8 +261,8 @@ export default function HesaplamaFormu() {
     if (raporTuru === "analik" && tarihMod === "tarih" && analikSonuc) {
       // AnalikHesap bileşeninden gelen tüm satırları donemTip ile işaretle
       const tumSatirlar = [
-        ...analikSonuc.oncesiSatirlar.map((s, i) => ({ id: 1 + i, baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak", donemTip: "oncesi" as const, gun: null })),
-        ...analikSonuc.sonrasiSatirlar.map((s, i) => ({ id: 100 + i, baslangic: s.baslangic, bitis: s.bitis, tur: s.tur as "ayakta" | "yatarak", donemTip: "sonrasi" as const, gun: null })),
+        ...analikSonuc.oncesiSatirlar.map((s, i) => ({ id: 1 + i, baslangic: s.baslangic, baslangicDisplay: fmt_tarih(s.baslangic), bitis: s.bitis, bitisDisplay: fmt_tarih(s.bitis), tur: s.tur as "ayakta" | "yatarak", donemTip: "oncesi" as const, gun: null })),
+        ...analikSonuc.sonrasiSatirlar.map((s, i) => ({ id: 100 + i, baslangic: s.baslangic, baslangicDisplay: fmt_tarih(s.baslangic), bitis: s.bitis, bitisDisplay: fmt_tarih(s.bitis), tur: s.tur as "ayakta" | "yatarak", donemTip: "sonrasi" as const, gun: null })),
       ].filter(s => s.baslangic && s.bitis);
 
       if (tumSatirlar.length === 0) {
@@ -328,8 +330,8 @@ export default function HesaplamaFormu() {
     setSonuc(null); setHata(null); setKazancMod("manuel");
     setAyKazancSatirlar(ayListesi.map((ay) => ({ id: _aysatirId++, ay, kazanc: 0, primGunu: 0 })));
     setSatirlar([
-      { id: 1, tur: "ayakta", donemTip: "oncesi", gun: null, baslangic: "", bitis: "" },
-      { id: 2, tur: "ayakta", donemTip: "sonrasi", gun: null, baslangic: "", bitis: "" },
+      { id: 1, tur: "ayakta", donemTip: "oncesi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
+      { id: 2, tur: "ayakta", donemTip: "sonrasi", gun: null, baslangic: "", baslangicDisplay: "", bitis: "", bitisDisplay: "" },
     ]);
   };
 
@@ -520,11 +522,15 @@ export default function HesaplamaFormu() {
                           <span style={{ fontSize: 10, color: "var(--muted)", minWidth: 12, flexShrink: 0 }}>{idx + 1}.</span>
                           <input 
                             type="text" 
-                            value={fmt_tarih(s.baslangic)}
+                            value={s.baslangicDisplay || ''}
                             onChange={(e) => { 
-                              const parsed = parseDate(formatDateInput(e.target.value));
-                              updateSatir(s.id, "baslangic", parsed);
-                              handleBaslangicChange(parsed);
+                              const formatted = formatDateInput(e.target.value);
+                              const parsed = parseDate(formatted);
+                              updateSatir(s.id, "baslangicDisplay", formatted);
+                              if (parsed) {
+                                updateSatir(s.id, "baslangic", parsed);
+                                handleBaslangicChange(parsed);
+                              }
                             }}
                             placeholder="GG.AA.YYYY"
                             maxLength={10}
@@ -533,8 +539,15 @@ export default function HesaplamaFormu() {
                           <span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0 }}>→</span>
                           <input 
                             type="text" 
-                            value={fmt_tarih(s.bitis)}
-                            onChange={(e) => updateSatir(s.id, "bitis", parseDate(formatDateInput(e.target.value)))}
+                            value={s.bitisDisplay || ''}
+                            onChange={(e) => {
+                              const formatted = formatDateInput(e.target.value);
+                              const parsed = parseDate(formatted);
+                              updateSatir(s.id, "bitisDisplay", formatted);
+                              if (parsed) {
+                                updateSatir(s.id, "bitis", parsed);
+                              }
+                            }}
                             placeholder="GG.AA.YYYY"
                             maxLength={10}
                             inputMode="numeric"
