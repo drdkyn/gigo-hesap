@@ -331,8 +331,15 @@ export default function AnalikHesap({ onChange }: Props) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <div>
                 <label style={lb}>Rapor Tarihi</label>
-                <input type="date" value={raporTarihi}
-                  onChange={e => setRaporTarihi(e.target.value)} style={inp} />
+                <input 
+                  type="text" 
+                  value={raporTarihi}
+                  onChange={e => setRaporTarihi(formatDateInput(e.target.value))}
+                  placeholder="GG.AA.YYYY"
+                  maxLength={10}
+                  inputMode="numeric"
+                  style={inp} 
+                />
               </div>
               <div>
                 <label style={lb}>Kaçıncı Hafta</label>
@@ -393,8 +400,15 @@ export default function AnalikHesap({ onChange }: Props) {
       <DonemKart renk="#b45309" baslik="👶 Doğum Tarihi">
         <div>
           <label style={lb}>Doğum Tarihi</label>
-          <input type="date" value={dogumTarihi}
-            onChange={e => setDogumTarihi(e.target.value)} style={{ ...inp, maxWidth: 200 }} />
+          <input 
+            type="text" 
+            value={dogumTarihi}
+            onChange={e => setDogumTarihi(formatDateInput(e.target.value))}
+            placeholder="GG.AA.YYYY"
+            maxLength={10}
+            inputMode="numeric"
+            style={{ ...inp, maxWidth: 200 }} 
+          />
         </div>
         {!oncesiRaporVar && dogumTarihi && (
           <InfoSatir renk="#b45309">
@@ -546,13 +560,25 @@ function SatirListesi({ satirlar, donemBas, donemBit, onUpdate, onAdd, onRemove 
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
               <span style={{ fontSize: 10, color: "#64748b", flexShrink: 0 }}>{idx + 1}.</span>
-              <input type="date" value={s.baslangic} min={donemBas} max={s.bitis || donemBit}
-                onChange={e => onUpdate(s.id, "baslangic", e.target.value)}
-                style={{ ...inp, flex: 1, padding: "4px 5px", fontSize: 11 }} />
+              <input 
+                type="text" 
+                value={fmt_tarih(s.baslangic)}
+                onChange={e => onUpdate(s.id, "baslangic", parseDate(formatDateInput(e.target.value)))}
+                placeholder="GG.AA.YYYY"
+                maxLength={10}
+                inputMode="numeric"
+                style={{ ...inp, flex: 1, padding: "4px 5px", fontSize: 11 }} 
+              />
               <span style={{ fontSize: 9, color: "#64748b", flexShrink: 0 }}>→</span>
-              <input type="date" value={s.bitis} min={s.baslangic} max={donemBit}
-                onChange={e => onUpdate(s.id, "bitis", e.target.value)}
-                style={{ ...inp, flex: 1, padding: "4px 5px", fontSize: 11 }} />
+              <input 
+                type="text" 
+                value={fmt_tarih(s.bitis)}
+                onChange={e => onUpdate(s.id, "bitis", parseDate(formatDateInput(e.target.value)))}
+                placeholder="GG.AA.YYYY"
+                maxLength={10}
+                inputMode="numeric"
+                style={{ ...inp, flex: 1, padding: "4px 5px", fontSize: 11 }} 
+              />
               {gun > 0 && <span style={{ fontSize: 9, color: "#64748b", flexShrink: 0 }}>{gun}g</span>}
               {satirlar.length > 1 && (
                 <button onClick={() => onRemove(s.id)} style={{ background: "#fee2e2", color: "#b91c1c", border: "none", borderRadius: 5, padding: "2px 5px", fontSize: 10, cursor: "pointer" }}>✕</button>
