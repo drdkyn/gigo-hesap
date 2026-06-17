@@ -78,7 +78,7 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
   }
 
   .pc-left {
-    border-right: 4px solid #d1dce8;
+    border-right: 8px solid #d1dce8;
     padding-right: 20px;
   }
 
